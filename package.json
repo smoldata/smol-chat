@@ -12,7 +12,8 @@
     "url": "git+https://github.com/smoldata/smol-chat.git"
   },
   "dependencies": {
-    "express": "^4.16.2"
+    "express": "^4.16.2",
+    "socket.io": "^2.0.4"
   },
   "engines": {
     "node": "8.x"
