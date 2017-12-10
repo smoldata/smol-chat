@@ -1,0 +1,65 @@
+/* https://www.paulirish.com/2012/box-sizing-border-box-ftw/ */
+
+html {
+	box-sizing: border-box;
+}
+
+*, *:before, *:after {
+	box-sizing: inherit;
+}
+
+body, input, select {
+	font-family: "Source Sans Pro", sans-serif;
+	font-size: 16px;
+	line-height: 1.5;
+}
+
+a {
+	color: #8442D5;
+}
+
+.clear {
+	clear: both;
+}
+
+#app {
+	margin: 0 auto;
+	width: 100%;
+	max-width: 800px;
+}
+
+#messages {
+	height: calc(100vh - 39px);
+	overflow-y: auto;
+}
+
+#messages li {
+	padding: 7px 0;
+	border-bottom: 1px solid #dedede;
+}
+
+#msg {
+	float: left;
+	width: 500px;
+	line-height: 39px;
+	padding: 0 10px;
+	border: none;
+	color: #fff;
+	background: rgba(23, 10, 38, 0.8);
+	width: calc(100% - 39px);
+}
+
+#submit {
+	float: left;
+	border: none;
+	color: #fff;
+	background: #8442D5;
+	width: 39px;
+	height: 39px;
+	font-size: 18px;
+	line-height: 18px;
+	vertical-align: bottom;
+	cursor: pointer;
+	border-top-right-radius: 4px;
+	border-bottom-right-radius: 4px;
+}
