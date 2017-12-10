@@ -1,0 +1,31 @@
+{
+  "name": "smol-chat",
+  "version": "0.0.1",
+  "description": "An SMS-friendly group chat app",
+  "main": "app/smol-chat.js",
+  "scripts": {
+    "start": "node app/smol-chat.js",
+    "startjs": "nodejs app/smol-chat.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/smoldata/smol-chat.git"
+  },
+  "dependencies": {
+    "express": "^4.16.2"
+  },
+  "engines": {
+    "node": "8.x"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/smoldata/smol-chat/issues"
+  },
+  "keywords": [
+    "smol data",
+    "sms",
+    "chat",
+    "twilio",
+    "glitch"
+  ]
+}
