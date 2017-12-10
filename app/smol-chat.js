@@ -7,6 +7,8 @@ var body_parser = require('body-parser');
 var path = require('path');
 
 var app = express();
+var server = require('http').Server(app);
+var io = require('socket.io')(server);
 
 app.use(body_parser.json()); // application/json
 app.use(body_parser.urlencoded({ extended: true })); // application/x-www-form-urlencoded
@@ -39,8 +41,20 @@ app.post("/api/message", function(request, response) {
 	response.redirect('/');
 });
 
+io.on('connection', function(socket) {
+	socket.on('message', function(data) {
+		var msg = {
+			from: socket.id,
+			message: data.message,
+			when: (new Date()).toJSON()
+		};
+		messages.push(msg);
+		io.emit('message', msg);
+	});
+});
+
 // listen for requests :)
 var port = process.env.PORT || 4433;
-var listener = app.listen(port, function() {
+var listener = server.listen(port, function() {
 	console.log('Your app is listening on port ' + listener.address().port);
 });

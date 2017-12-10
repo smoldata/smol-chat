@@ -38,7 +38,7 @@ a {
 	border-bottom: 1px solid #dedede;
 }
 
-#msg {
+#message-input {
 	float: left;
 	width: 500px;
 	line-height: 39px;
@@ -49,7 +49,11 @@ a {
 	width: calc(100% - 39px);
 }
 
-#submit {
+#message-input[disabled="disabled"] {
+	color: rgba(255, 255, 255, 0.5);
+}
+
+#message-submit {
 	float: left;
 	border: none;
 	color: #fff;
@@ -62,4 +66,8 @@ a {
 	cursor: pointer;
 	border-top-right-radius: 4px;
 	border-bottom-right-radius: 4px;
+}
+
+#message-submit:hover {
+	background: #000;
 }
