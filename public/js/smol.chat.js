@@ -2,6 +2,8 @@ var smol = smol || {};
 
 smol.chat = (function() {
 
+	var sending_timeout = null;
+
 	var self = {
 
 		init: function() {
@@ -23,10 +25,16 @@ smol.chat = (function() {
 		setup_form: function() {
 			$('#message-form').submit(function(e) {
 				e.preventDefault();
+				var msg = $('#message-input').val();
 				self.socket.emit('message', {
-					message: $('#message-input').val()
+					message: msg
 				});
+				$('#message-input').val(msg + ' (sending)');
 				$('#message-input').attr('disabled', 'disabled');
+				sending_timeout = setTimeout(function() {
+					$('#message-input').val(msg);
+					$('#message-input').attr('disabled', null);
+				}, 5000);
 			});
 		},
 
@@ -39,6 +47,7 @@ smol.chat = (function() {
 				if (self.socket.id == data.from) {
 					$('#message-input').attr('disabled', null);
 					$('#message-input').val('');
+					clearTimeout(sending_timeout);
 				}
 			});
 
