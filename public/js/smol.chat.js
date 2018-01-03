@@ -3,6 +3,7 @@ var smol = smol || {};
 smol.chat = (function() {
 
 	var sending_timeout = null;
+	var last_message = null;
 
 	var self = {
 
@@ -27,6 +28,7 @@ smol.chat = (function() {
 				e.preventDefault();
 				var msg = $('#message-input').val();
 				self.socket.emit('message', {
+					sender: 'dphiffer',
 					message: msg
 				});
 				$('#message-input').val(msg + ' (sending)');
@@ -44,7 +46,7 @@ smol.chat = (function() {
 			self.socket.on('message', function(data) {
 				self.add_message(data);
 				self.update_messages_scroll();
-				if (self.socket.id == data.from) {
+				if (self.socket.id == data.socket_id) {
 					$('#message-input').attr('disabled', null);
 					$('#message-input').val('');
 					clearTimeout(sending_timeout);
@@ -55,10 +57,19 @@ smol.chat = (function() {
 		},
 
 		add_message: function(msg) {
+
+			var classname = 'message';
+			var esc_sender = smol.esc_html(msg.sender);
 			var esc_message = smol.esc_html(msg.message);
-			var esc_when = smol.esc_html(msg.when);
-			var html = '<li title="' + esc_when + '">' + esc_message + '</li>';
+			var esc_created = smol.esc_html(msg.created);
+
+			if (last_message && last_message.sender == msg.sender) {
+				classname += ' hide-sender';
+			}
+
+			var html = '<li class="' + classname + '" title="' + esc_created + '"><div class="sender">' + esc_sender + '</div>' + esc_message + '</li>';
 			$('#messages').append(html);
+			last_message = msg;
 		},
 
 		update_messages_scroll: function() {

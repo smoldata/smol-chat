@@ -32,10 +32,11 @@ app.get("/api/messages", function(request, response) {
 });
 
 app.post("/api/message", function(request, response) {
-	if (request.body.message) {
+	if (request.body.message && request.body.sender) {
 		messages.push({
-			message: request.body.message,
-			when: (new Date()).toJSON()
+			created: (new Date()).toJSON(),
+			sender: request.body.sender,
+			message: request.body.message
 		});
 	}
 	response.redirect('/');
@@ -44,9 +45,10 @@ app.post("/api/message", function(request, response) {
 io.on('connection', function(socket) {
 	socket.on('message', function(data) {
 		var msg = {
-			from: socket.id,
-			message: data.message,
-			when: (new Date()).toJSON()
+			socket_id: socket.id,
+			created: (new Date()).toJSON(),
+			sender: data.sender,
+			message: data.message
 		};
 		messages.push(msg);
 		io.emit('message', msg);

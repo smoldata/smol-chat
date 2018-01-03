@@ -33,7 +33,7 @@ a {
 	overflow-y: auto;
 }
 
-#messages li {
+#messages .message {
 	padding: 7px 0;
 	border-bottom: 1px solid #dedede;
 }
@@ -76,4 +76,16 @@ a {
 
 #message-submit:hover {
 	background: #000;
+}
+
+.message .sender {
+	font-weight: bold;
+}
+
+.hide-sender {
+	border-top: none;
+}
+
+.hide-sender .sender {
+	display: none;
 }
