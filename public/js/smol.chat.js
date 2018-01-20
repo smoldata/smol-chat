@@ -10,6 +10,7 @@ smol.chat = (function() {
 		init: function() {
 			self.setup_messages();
 			self.setup_form();
+			self.setup_avatar();
 			self.setup_socket();
 		},
 
@@ -38,6 +39,24 @@ smol.chat = (function() {
 					$('#message-input').attr('disabled', null);
 				}, 5000);
 			});
+		},
+
+		setup_avatar: function() {
+			var color = Math.ceil(Math.random() * 10);
+			var icon = Math.ceil(Math.random() * 25);
+			$('#avatar').addClass('color' + color);
+			$('#avatar-icon').addClass('icon' + icon);
+			var rgb = smol.color.get_rgb('#avatar');
+			var hsl = smol.color.rgb2hsl(rgb);
+			hsl.l = 50;
+			var dark = smol.color.hsl2rgb(hsl);
+			var dark = 'rgb(' + dark.r + ', ' + dark.g + ', ' + dark.b + ')';
+			hsl.l = 100;
+			var light = smol.color.hsl2rgb(hsl);
+			var light = 'rgb(' + light.r + ', ' + light.g + ', ' + light.b + ')';
+
+			$('#message-input').css('background-color', dark);
+			$('#message-submit').css('background-color', light);
 		},
 
 		setup_socket: function() {

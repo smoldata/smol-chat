@@ -38,6 +38,76 @@ a {
 	border-bottom: 1px solid #dedede;
 }
 
+#avatar {
+	position: relative;
+	float: left;
+	width: 45px;
+	height: 45px;
+	border-radius: 4px;
+	margin-right: 1px;
+}
+
+#avatar-icon {
+	position: absolute;
+	left: 3.5px;
+	top: 3.5px;
+	background-image: url('../img/avatars-black.png');
+	background-size: 190px 190px;
+	width: 38px;
+	height: 38px;
+}
+
+/*
+
+From ColorBrewer
+http://colorbrewer2.org/#type=qualitative&scheme=Paired&n=10
+
+*/
+#avatar.color1 { background: #a6cee3; }
+#avatar.color2 { background: #1f78b4; }
+#avatar.color3 { background: #b2df8a; }
+#avatar.color4 { background: #33a02c; }
+#avatar.color5 { background: #fb9a99; }
+#avatar.color6 { background: #e31a1c; }
+#avatar.color7 { background: #fdbf6f; }
+#avatar.color8 { background: #ff7f00; }
+#avatar.color9 { background: #cab2d6; }
+#avatar.color10 { background: #6a3d9a; }
+
+#avatar.color2 #avatar-icon,
+#avatar.color4 #avatar-icon,
+#avatar.color6 #avatar-icon,
+#avatar.color8 #avatar-icon,
+#avatar.color10 #avatar-icon {
+	background-image: url('../img/avatars-white.png'); }
+}
+
+#avatar-icon.icon1 {}
+#avatar-icon.icon2 { background-position: -38px 0; }
+#avatar-icon.icon3 { background-position: -76px 0; }
+#avatar-icon.icon4 { background-position: -114px 0; }
+#avatar-icon.icon5 { background-position: -152px 0; }
+#avatar-icon.icon6 { background-position: -38px 0; }
+#avatar-icon.icon7 { background-position: -38px -38px; }
+#avatar-icon.icon8 { background-position: -38px -76px; }
+#avatar-icon.icon9 { background-position: -38px -114px; }
+#avatar-icon.icon10 { background-position: -38px -152px; }
+#avatar-icon.icon11 { background-position: -76px 0; }
+#avatar-icon.icon12 { background-position: -76px -38px; }
+#avatar-icon.icon13 { background-position: -76px -76px; }
+#avatar-icon.icon14 { background-position: -76px -114px; }
+#avatar-icon.icon15 { background-position: -76px -152px; }
+#avatar-icon.icon16 { background-position: -114px 0; }
+#avatar-icon.icon17 { background-position: -114px -38px; }
+#avatar-icon.icon18 { background-position: -114px -76px; }
+#avatar-icon.icon19 { background-position: -114px -114px; }
+#avatar-icon.icon20 { background-position: -114px -152px; }
+#avatar-icon.icon21 { background-position: -152px 0; }
+#avatar-icon.icon22 { background-position: -152px -38px; }
+#avatar-icon.icon23 { background-position: -152px -76px; }
+#avatar-icon.icon24 { background-position: -152px -114px; }
+#avatar-icon.icon25 { background-position: -152px -152px; }
+
 #message-input {
 	float: left;
 	width: 500px;
@@ -46,7 +116,7 @@ a {
 	border: none;
 	color: #fff;
 	background: rgba(23, 10, 38, 0.8);
-	width: calc(100% - 45px);
+	width: calc(100% - 45px - 46px);
 	border-top-left-radius: 4px;
 	border-bottom-left-radius: 4px;
 }
