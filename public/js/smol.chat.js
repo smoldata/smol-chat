@@ -4,13 +4,17 @@ smol.chat = (function() {
 
 	var sending_timeout = null;
 	var last_message = null;
+	var users = {};
 
 	var self = {
 
 		init: function() {
-			self.setup_messages();
+			self.setup_users(function() {
+				self.setup_messages();
+			});
 			self.setup_form();
 			self.setup_avatar();
+			self.setup_colors();
 			self.setup_socket();
 		},
 
@@ -19,8 +23,16 @@ smol.chat = (function() {
 				$.each(rsp.messages, function(i, msg) {
 					self.add_message(msg);
 				});
-
 				self.update_messages_scroll();
+			});
+		},
+
+		setup_users: function(cb) {
+			$.get('/api/users').then(function(rsp) {
+				users = rsp.users;
+				if (typeof cb == 'function') {
+					cb();
+				}
 			});
 		},
 
@@ -29,7 +41,6 @@ smol.chat = (function() {
 				e.preventDefault();
 				var msg = $('#message-input').val();
 				self.socket.emit('message', {
-					sender: 'dphiffer',
 					message: msg
 				});
 				$('#message-input').val(msg + ' (sending)');
@@ -42,10 +53,40 @@ smol.chat = (function() {
 		},
 
 		setup_avatar: function() {
-			var color = Math.ceil(Math.random() * 10);
-			var icon = Math.ceil(Math.random() * 25);
+
+			if (window.localStorage && localStorage.user) {
+				try {
+					var user = JSON.parse(localStorage.user);
+					var nickname = user.nickname;
+					var color = user.color;
+					var icon = user.icon;
+				} catch (err) {
+					console.error('Could not restore user from localStorage');
+				}
+			}
+
+			if (! user) {
+				var nickname = smol.names.pick_random();
+				var color = Math.ceil(Math.random() * 10);
+				var icon = Math.ceil(Math.random() * 25);
+				if (window.localStorage) {
+					console.log('saving user');
+					localStorage.user = JSON.stringify({
+						nickname: nickname,
+						color: color,
+						icon: icon
+					});
+				}
+			}
+
 			$('#avatar').addClass('color' + color);
 			$('#avatar-icon').addClass('icon' + icon);
+			$('#avatar').data('color', color);
+			$('#avatar').data('icon', icon);
+			$('#avatar').data('nickname', nickname);
+		},
+
+		setup_colors: function() {
 			var rgb = smol.color.get_rgb('#avatar');
 			var hsl = smol.color.rgb2hsl(rgb);
 			hsl.l = 50;
@@ -54,7 +95,6 @@ smol.chat = (function() {
 			hsl.l = 100;
 			var light = smol.color.hsl2rgb(hsl);
 			var light = 'rgb(' + light.r + ', ' + light.g + ', ' + light.b + ')';
-
 			$('#message-input').css('background-color', dark);
 			$('#message-submit').css('background-color', light);
 		},
@@ -71,22 +111,40 @@ smol.chat = (function() {
 					clearTimeout(sending_timeout);
 				}
 			});
+			self.socket.on('user', function(data) {
+				users[data.socket_id] = data;
+			});
+			self.socket.emit('user', {
+				color: $('#avatar').data('color'),
+				icon: $('#avatar').data('icon'),
+				nickname: $('#avatar').data('nickname')
+			});
 
 			$('#msg').focus();
 		},
 
 		add_message: function(msg) {
-
+			var user = users[msg.socket_id];
+			if (! user) {
+				console.error('Could not find user ' + msg.socket_id);
+				return;
+			}
 			var classname = 'message';
-			var esc_sender = smol.esc_html(msg.sender);
 			var esc_message = smol.esc_html(msg.message);
 			var esc_created = smol.esc_html(msg.created);
+			var esc_nickname = smol.esc_html(user.nickname);
+			var esc_color = smol.esc_html(user.color);
+			var esc_icon = smol.esc_html(user.icon);
 
-			if (last_message && last_message.sender == msg.sender) {
+			if (last_message && last_message.socket_id == msg.socket_id) {
 				classname += ' hide-sender';
 			}
 
-			var html = '<li class="' + classname + '" title="' + esc_created + '"><div class="sender">' + esc_sender + '</div>' + esc_message + '</li>';
+			var html = '<li class="' + classname + '" title="' + esc_created + '">' +
+			           '<div class="avatar color' + esc_color + '">' +
+			           '<div class="avatar-icon icon' + esc_icon + '"></div></div>' +
+			           '<div class="nickname">' + esc_nickname + '</div>' +
+			           esc_message + '</li>';
 			$('#messages').append(html);
 			last_message = msg;
 		},

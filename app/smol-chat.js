@@ -23,6 +23,7 @@ app.get("/", function(request, response) {
 });
 
 var messages = [];
+var users = {};
 
 app.get("/api/messages", function(request, response) {
 	response.send({
@@ -31,23 +32,30 @@ app.get("/api/messages", function(request, response) {
 	});
 });
 
-app.post("/api/message", function(request, response) {
-	if (request.body.message && request.body.sender) {
-		messages.push({
-			created: (new Date()).toJSON(),
-			sender: request.body.sender,
-			message: request.body.message
-		});
-	}
-	response.redirect('/');
+app.get("/api/users", function(request, response) {
+	response.send({
+		ok: 1,
+		users: users
+	});
 });
 
 io.on('connection', function(socket) {
+
+	socket.on('user', function(data) {
+		var user = {
+			socket_id: socket.id,
+			color: data.color,
+			icon: data.icon,
+			nickname: data.nickname
+		};
+		users[socket.id] = user;
+		io.emit('user', user);
+	});
+
 	socket.on('message', function(data) {
 		var msg = {
 			socket_id: socket.id,
 			created: (new Date()).toJSON(),
-			sender: data.sender,
 			message: data.message
 		};
 		messages.push(msg);
