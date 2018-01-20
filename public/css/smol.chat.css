@@ -39,6 +39,22 @@ a {
 	border-bottom: 1px solid #dedede;
 }
 
+#messages code {
+	display: inline-block;
+	font-family: menlo, monospace;
+	font-size: 0.9em;
+	padding: 3px;
+	background: #eee;
+}
+
+#messages em {
+	font-style: italic;
+}
+
+#messages strong {
+	font-weight: bold;
+}
+
 .avatar {
 	position: relative;
 	float: left;

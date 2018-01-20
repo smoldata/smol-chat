@@ -40,6 +40,10 @@ smol.chat = (function() {
 			$('#message-form').submit(function(e) {
 				e.preventDefault();
 				var msg = $('#message-input').val();
+				if (self.message_command(msg)) {
+					$('#message-input').val('');
+					return;
+				}
 				self.socket.emit('message', {
 					message: msg
 				});
@@ -112,7 +116,10 @@ smol.chat = (function() {
 				}
 			});
 			self.socket.on('user', function(data) {
+				console.log('user', data);
 				users[data.socket_id] = data;
+				var esc_nickname = smol.esc_html(data.nickname);
+				$('.user-' + data.socket_id + ' .nickname').html(esc_nickname);
 			});
 			self.socket.emit('user', {
 				color: $('#avatar').data('color'),
@@ -129,7 +136,8 @@ smol.chat = (function() {
 				console.error('Could not find user ' + msg.socket_id);
 				return;
 			}
-			var classname = 'message';
+			var esc_id = smol.esc_html(msg.socket_id);
+			var classname = 'message user-' + esc_id;
 			var esc_message = smol.esc_html(msg.message);
 			esc_message = self.format_message(esc_message);
 			var esc_created = smol.esc_html(msg.created);
@@ -145,7 +153,7 @@ smol.chat = (function() {
 			var html = '<li class="' + classname + '" title="' + esc_created + '">' +
 			           '<div class="avatar color' + esc_color + '">' +
 			           '<div class="avatar-icon icon' + esc_icon + '"></div></div>' +
-			           '<div class="nickname">' + esc_nickname + '</div>' +
+			           '<div class="nickname" title="Connection ' + esc_id + '">' + esc_nickname + '</div>' +
 			           esc_message + '</li>';
 			$('#messages').append(html);
 			last_message = msg;
@@ -153,6 +161,9 @@ smol.chat = (function() {
 
 		format_message: function(msg) {
 			msg = msg.replace(/(https?:\/\/\S+)/g, '<a href="$1" target="_blank">$1</a>');
+			msg = msg.replace(/`([^`]+)`/g, '<code>$1</code>');
+			msg = msg.replace(/_([^_]+)_/g, '<em>$1</em>');
+			msg = msg.replace(new RegExp('\\*([^*]+)\\*', 'g'), '<strong>$1</strong>');
 			return msg;
 		},
 
@@ -162,6 +173,33 @@ smol.chat = (function() {
 			if (scroll > height) {
 				$('#messages').scrollTop(scroll - height);
 			}
+		},
+
+		message_command: function(msg) {
+			var nick = msg.match(/^\/nick (.+)$/);
+			if (nick) {
+				self.set_nickname(nick[1]);
+				return true;
+			}
+			return false;
+		},
+
+		set_nickname: function(nickname) {
+			$('#avatar').data('nickname', nickname);
+			if (window.localStorage && localStorage.user) {
+				try {
+					var user = JSON.parse(localStorage.user);
+					user.nickname = nickname;
+					localStorage.user = JSON.stringify(user);
+				} catch(err) {
+					console.error('Could not store nickname in localStorage');
+				}
+			}
+			self.socket.emit('user', {
+				nickname: nickname,
+				color: $('#avatar').data('color'),
+				icon: $('#avatar').data('icon')
+			});
 		}
 
 	};
