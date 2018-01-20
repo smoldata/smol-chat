@@ -29,8 +29,9 @@ a {
 }
 
 #messages {
-	height: calc(100vh - 55px);
+	height: calc(100vh - 60px);
 	overflow-y: auto;
+	margin-bottom: 7.5px;
 }
 
 #messages .message {
@@ -73,6 +74,31 @@ http://colorbrewer2.org/#type=qualitative&scheme=Paired&n=10
 .avatar.color8 { background: #ff7f00; }
 .avatar.color9 { background: #cab2d6; }
 .avatar.color10 { background: #6a3d9a; }
+
+#messages .color1 a,
+#messages .color2 a {
+	color: #1f78b4;
+}
+
+#messages .color3 a,
+#messages .color4 a {
+	color: #33a02c;
+}
+
+#messages .color5 a,
+#messages .color6 a {
+	color: #e31a1c;
+}
+
+#messages .color7 a,
+#messages .color8 a {
+	color: #ff7f00;
+}
+
+#messages .color9 a,
+#messages .color10 a {
+	color: #6a3d9a;
+}
 
 .avatar.color2 .avatar-icon,
 .avatar.color4 .avatar-icon,

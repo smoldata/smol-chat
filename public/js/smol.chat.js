@@ -131,6 +131,7 @@ smol.chat = (function() {
 			}
 			var classname = 'message';
 			var esc_message = smol.esc_html(msg.message);
+			esc_message = self.format_message(esc_message);
 			var esc_created = smol.esc_html(msg.created);
 			var esc_nickname = smol.esc_html(user.nickname);
 			var esc_color = smol.esc_html(user.color);
@@ -139,6 +140,7 @@ smol.chat = (function() {
 			if (last_message && last_message.socket_id == msg.socket_id) {
 				classname += ' hide-sender';
 			}
+			classname += ' color' + esc_color;
 
 			var html = '<li class="' + classname + '" title="' + esc_created + '">' +
 			           '<div class="avatar color' + esc_color + '">' +
@@ -147,6 +149,11 @@ smol.chat = (function() {
 			           esc_message + '</li>';
 			$('#messages').append(html);
 			last_message = msg;
+		},
+
+		format_message: function(msg) {
+			msg = msg.replace(/(https?:\/\/\S+)/g, '<a href="$1" target="_blank">$1</a>');
+			return msg;
 		},
 
 		update_messages_scroll: function() {
