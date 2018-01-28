@@ -1,0 +1,67 @@
+#menu {
+	position: fixed;
+	top: -100vh;
+	left: 0;
+	width: 100vw;
+	height: 100vh;
+	background: #eee;
+	overflow: auto;
+	transition: top 0.25s ease-out;
+}
+
+#menu.no-animation {
+	transition: none;
+}
+
+#menu.active {
+	top: 0;
+}
+
+#menu-close {
+	display: none;
+	position: fixed;
+	top: 0;
+	right: 0;
+	font-size: 24px;
+	color: #170A26;
+	padding: 10px;
+	cursor: pointer;
+}
+
+#menu.active #menu-close {
+	display: block;
+}
+
+#menu .menu-page {
+	display: none;
+	width: 100%;
+	max-width: 640px;
+	padding: 10px 10px 40px 10px;
+	margin: 0 auto;
+	min-height: 100vh;
+	position: relative;
+}
+
+#menu .menu-page.visible {
+	display: block;
+}
+
+#menu .buttons {
+	margin: 20px 0;
+	border-top: 1px solid #ccc;
+}
+
+#menu .response {
+	font-size: 14px;
+	font-weight: bold;
+	padding-top: 10px;
+	padding-bottom: 10px;
+}
+
+#menu .edit-delete {
+	color: #DE2B32;
+}
+
+#menu .edit-delete:hover {
+	color: #000;
+}

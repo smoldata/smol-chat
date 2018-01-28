@@ -42,6 +42,10 @@ app.get("/api/users", function(request, response) {
 io.on('connection', function(socket) {
 
 	socket.on('user', function(data) {
+		if (! data || ! data.color || ! data.icon || ! data.nickname) {
+			console.log('invalid user event');
+			return;
+		}
 		var user = {
 			socket_id: socket.id,
 			color: data.color,

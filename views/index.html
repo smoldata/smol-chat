@@ -9,6 +9,7 @@
 		<link rel="stylesheet" href="/css/reset.css">
 		<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
 		<link rel="stylesheet" href="/lib/source-sans-pro/source-sans-pro.css">
+		<link rel="stylesheet" href="/css/smol.menu.css">
 		<link rel="stylesheet" href="/css/smol.chat.css">
 	</head>
 	<body>
@@ -22,11 +23,31 @@
 				<button id="message-submit" title="Send message"><span class="fa fa-paper-plane"></span></button>
 				<br class="clear">
 			</form>
+			<div id="menu">
+
+				<span id="menu-close"><span class="fa fa-close"></span></span>
+
+				<form action="/api/user" method="post" id="user" class="menu-page">
+					<h1>Settings</h1>
+					<label>
+						Nickname
+						<input type="text" name="nickname" id="user-nickname" value="">
+						<div class="help">You can change your name using <code>/nick name</code></div>
+					</label>
+					<div class="buttons">
+						<div class="response"></div>
+						<input type="submit" name="action" class="btn btn-save" value="Save">
+						<input id="config-cancel" type="button" class="btn btn-cancel" value="Cancel">
+					</div>
+				</form>
+			</div>
 		</div>
 		<script src="/socket.io/socket.io.js"></script>
 		<script src="/lib/jquery/dist/jquery.min.js"></script>
 		<script src="/js/smol.js"></script>
 		<script src="/js/smol.color.js"></script>
+		<script src="/js/smol.menu.js"></script>
+		<script src="/js/smol.menu.user.js"></script>
 		<script src="/js/smol.names.js"></script>
 		<script src="/js/smol.chat.js"></script>
 	</body>

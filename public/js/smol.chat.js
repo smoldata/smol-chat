@@ -8,14 +8,16 @@ smol.chat = (function() {
 
 	var self = {
 
+		user: null,
+
 		init: function() {
 			self.setup_users(function() {
 				self.setup_messages();
 			});
+			self.setup_socket();
 			self.setup_form();
 			self.setup_avatar();
 			self.setup_colors();
-			self.setup_socket();
 		},
 
 		setup_messages: function() {
@@ -57,37 +59,17 @@ smol.chat = (function() {
 		},
 
 		setup_avatar: function() {
-
-			if (window.localStorage && localStorage.user) {
-				try {
-					var user = JSON.parse(localStorage.user);
-					var nickname = user.nickname;
-					var color = user.color;
-					var icon = user.icon;
-				} catch (err) {
-					console.error('Could not restore user from localStorage');
-				}
-			}
-
-			if (! user) {
-				var nickname = smol.names.pick_random();
-				var color = Math.ceil(Math.random() * 10);
-				var icon = Math.ceil(Math.random() * 25);
-				if (window.localStorage) {
-					console.log('saving user');
-					localStorage.user = JSON.stringify({
-						nickname: nickname,
-						color: color,
-						icon: icon
-					});
-				}
-			}
-
-			$('#avatar').addClass('color' + color);
-			$('#avatar-icon').addClass('icon' + icon);
-			$('#avatar').data('color', color);
-			$('#avatar').data('icon', icon);
-			$('#avatar').data('nickname', nickname);
+			self.user = self.get_user();
+			self.socket.emit('user', self.user);
+			$('#avatar').addClass('color' + self.user.color);
+			$('#avatar-icon').addClass('icon' + self.user.icon);
+			$('#avatar').data('color', self.user.color);
+			$('#avatar').data('icon', self.user.icon);
+			$('#avatar').data('nickname', self.user.nickname);
+			$('#avatar').click(function(e) {
+				e.preventDefault();
+				smol.menu.show('user');
+			});
 		},
 
 		setup_colors: function() {
@@ -116,17 +98,10 @@ smol.chat = (function() {
 				}
 			});
 			self.socket.on('user', function(data) {
-				console.log('user', data);
 				users[data.socket_id] = data;
 				var esc_nickname = smol.esc_html(data.nickname);
 				$('.user-' + data.socket_id + ' .nickname').html(esc_nickname);
 			});
-			self.socket.emit('user', {
-				color: $('#avatar').data('color'),
-				icon: $('#avatar').data('icon'),
-				nickname: $('#avatar').data('nickname')
-			});
-
 			$('#msg').focus();
 		},
 
@@ -134,6 +109,7 @@ smol.chat = (function() {
 			var user = users[msg.socket_id];
 			if (! user) {
 				console.error('Could not find user ' + msg.socket_id);
+				console.log('msg', msg);
 				return;
 			}
 			var esc_id = smol.esc_html(msg.socket_id);
@@ -184,21 +160,66 @@ smol.chat = (function() {
 			return false;
 		},
 
-		set_nickname: function(nickname) {
-			$('#avatar').data('nickname', nickname);
+		get_user: function() {
+
+			if (self.user) {
+				return self.user;
+			}
+
 			if (window.localStorage && localStorage.user) {
 				try {
-					var user = JSON.parse(localStorage.user);
-					user.nickname = nickname;
-					localStorage.user = JSON.stringify(user);
+					self.user = JSON.parse(localStorage.user);
 				} catch(err) {
-					console.error('Could not store nickname in localStorage');
+					console.error(err);
 				}
 			}
-			self.socket.emit('user', {
-				nickname: nickname,
-				color: $('#avatar').data('color'),
-				icon: $('#avatar').data('icon')
+
+			if (! self.user) {
+				self.set_user({
+					nickname: smol.names.pick_random(),
+					color: Math.ceil(Math.random() * 10),
+					icon: Math.ceil(Math.random() * 25)
+				});
+				$('#menu').addClass('no-animation');
+				smol.menu.show('user');
+				setTimeout(function() {
+					$('#menu').removeClass('no-animation');
+				}, 1000);
+			}
+
+			return self.user;
+		},
+
+		set_user: function(props) {
+
+			var user = {};
+
+			if (window.localStorage && localStorage.user) {
+				try {
+					user = JSON.parse(localStorage.user);
+				} catch(err) {
+					console.error(err);
+				}
+			}
+
+			for (key in props) {
+				user[key] = props[key];
+			}
+
+			if (window.localStorage) {
+				localStorage.user = JSON.stringify(user);
+			}
+
+			self.user = user;
+			self.socket.emit('user', user);
+
+			return user;
+		},
+
+		set_nickname: function(nickname) {
+			$('#avatar').data('nickname', nickname);
+			self.set_user({
+				nickname: nickname
 			});
 		}
 
