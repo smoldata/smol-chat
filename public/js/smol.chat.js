@@ -88,6 +88,9 @@ smol.chat = (function() {
 		setup_socket: function() {
 			var base_url = window.location.href.match(/(https?:\/\/.+?)\//);
 			self.socket = io.connect(base_url[1]);
+			self.socket.on('reconnect', function(data) {
+				self.socket.emit('user', self.user);
+			});
 			self.socket.on('message', function(data) {
 				self.add_message(data);
 				self.update_messages_scroll();
@@ -101,6 +104,20 @@ smol.chat = (function() {
 				users[data.socket_id] = data;
 				var esc_nickname = smol.esc_html(data.nickname);
 				$('.user-' + data.socket_id + ' .nickname').html(esc_nickname);
+				$('.user-' + data.socket_id + ' .avatar').each(function(i, el) {
+					var old_color = el.className.match(/color\d+/);
+					if (old_color) {
+						$(el).removeClass(old_color[0]);
+						$(el).addClass('color' + data.color);
+					}
+				});
+				$('.user-' + data.socket_id + ' .avatar-icon').each(function(i, el) {
+					var old_icon = el.className.match(/icon\d+/);
+					if (old_icon) {
+						$(el).removeClass(old_icon[0]);
+						$(el).addClass('icon' + data.icon);
+					}
+				});
 			});
 			$('#msg').focus();
 		},
@@ -138,8 +155,10 @@ smol.chat = (function() {
 		format_message: function(msg) {
 			msg = msg.replace(/(https?:\/\/\S+)/g, '<a href="$1" target="_blank">$1</a>');
 			msg = msg.replace(/`([^`]+)`/g, '<code>$1</code>');
-			msg = msg.replace(/_([^_]+)_/g, '<em>$1</em>');
-			msg = msg.replace(new RegExp('\\*([^*]+)\\*', 'g'), '<strong>$1</strong>');
+			msg = msg.replace(/(\s)_([^_]+)_/g, '$1<em>$2</em>'); // make sure there's preceding whitespace
+			msg = msg.replace(/^_([^_]+)_/g, '<em>$1</em>');      // ... or that it's at the beginning
+			msg = msg.replace(new RegExp('(\\s)\\*([^*]+)\\*', 'g'), '$1<strong>$2</strong>');
+			msg = msg.replace(new RegExp('^\\*([^*]+)\\*', 'g'), '<strong>$1</strong>');
 			return msg;
 		},
 
@@ -153,8 +172,16 @@ smol.chat = (function() {
 
 		message_command: function(msg) {
 			var nick = msg.match(/^\/nick (.+)$/);
+			var icon = msg.match(/^\/icon (\d+)$/);
+			var color = msg.match(/^\/color (\d+)$/);
 			if (nick) {
 				self.set_nickname(nick[1]);
+				return true;
+			} else if (icon) {
+				self.set_icon(icon[1]);
+				return true;
+			} else if (color) {
+				self.set_color(color[1]);
 				return true;
 			}
 			return false;
@@ -217,10 +244,34 @@ smol.chat = (function() {
 		},
 
 		set_nickname: function(nickname) {
-			$('#avatar').data('nickname', nickname);
 			self.set_user({
 				nickname: nickname
 			});
+		},
+
+		set_icon: function(icon) {
+			icon = parseInt(icon);
+			if (icon < 1 || icon > 25) {
+				return;
+			}
+			$('#avatar-icon').removeClass('icon' + self.user.icon);
+			$('#avatar-icon').addClass('icon' + icon);
+			self.set_user({
+				icon: icon
+			});
+		},
+
+		set_color: function(color) {
+			color = parseInt(color);
+			if (color < 1 || color > 10) {
+				return;
+			}
+			$('#avatar').removeClass('color' + self.user.color);
+			$('#avatar').addClass('color' + color);
+			self.set_user({
+				color: color
+			});
+			self.setup_colors();
 		}
 
 	};
