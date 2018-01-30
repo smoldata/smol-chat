@@ -42,7 +42,10 @@ smol.chat = (function() {
 			$('#message-form').submit(function(e) {
 				e.preventDefault();
 				var msg = $('#message-input').val();
-				if (self.message_command(msg)) {
+				var cmd = self.message_command(msg);
+				if (cmd == -1) {
+					return;
+				} else if (cmd) {
 					$('#message-input').val('');
 					return;
 				}
@@ -175,13 +178,19 @@ smol.chat = (function() {
 			var icon = msg.match(/^\/icon (\d+)$/);
 			var color = msg.match(/^\/color (\d+)$/);
 			if (nick) {
-				self.set_nickname(nick[1]);
+				if (! self.set_nickname(nick[1])) {
+					return -1;
+				}
 				return true;
 			} else if (icon) {
-				self.set_icon(icon[1]);
+				if (! self.set_icon(icon[1])) {
+					return -1;
+				}
 				return true;
 			} else if (color) {
-				self.set_color(color[1]);
+				if (! self.set_color(color[1])) {
+					return -1;
+				}
 				return true;
 			}
 			return false;
@@ -244,27 +253,35 @@ smol.chat = (function() {
 		},
 
 		set_nickname: function(nickname) {
+			if (! nickname.match(/^[a-z0-9_]+$/)) {
+				alert('Sorry, your nickname can only include letters, numbers, or underscores.');
+				return false;
+			}
 			self.set_user({
 				nickname: nickname
 			});
+			return true;
 		},
 
 		set_icon: function(icon) {
 			icon = parseInt(icon);
 			if (icon < 1 || icon > 25) {
-				return;
+				alert('Sorry, your icon must be a number between 1 and 25.');
+				return false;
 			}
 			$('#avatar-icon').removeClass('icon' + self.user.icon);
 			$('#avatar-icon').addClass('icon' + icon);
 			self.set_user({
 				icon: icon
 			});
+			return true;
 		},
 
 		set_color: function(color) {
 			color = parseInt(color);
 			if (color < 1 || color > 10) {
-				return;
+				alert('Sorry, your color must be a number between 1 and 10.');
+				return false;
 			}
 			$('#avatar').removeClass('color' + self.user.color);
 			$('#avatar').addClass('color' + color);
@@ -272,6 +289,7 @@ smol.chat = (function() {
 				color: color
 			});
 			self.setup_colors();
+			return true;
 		}
 
 	};

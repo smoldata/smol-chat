@@ -1,0 +1,8 @@
+#user-avatar {
+	margin-top: 10px;
+}
+
+#user-icon, #user-color {
+	float: left;
+	margin-left: 10px;
+}
