@@ -82,6 +82,10 @@ code {
 
 .help code {
 	color: #333;
+	font-size: 0.8em;
+	display: inline-block;
+	background: #dedede;
+	padding: 2px;
 }
 
 .column {
