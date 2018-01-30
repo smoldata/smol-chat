@@ -163,7 +163,10 @@ smol.chat = (function() {
 			if (self.socket.id == data.socket_id) {
 				return;
 			}
-			if (Notification.permission == 'granted') {
+			if (Notification.permission != 'granted') {
+				return;
+			}
+			if (smol.menu.user.get_notify_status() == 'enabled') {
 				var user = users[data.socket_id];
 				var notification = new Notification(user.nickname, {
 					body: data.message

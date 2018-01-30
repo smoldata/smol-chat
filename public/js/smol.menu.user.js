@@ -3,6 +3,8 @@ smol.menu = smol.menu || {};
 
 smol.menu.user = (function() {
 
+	var notify_status = 'enabled';
+
 	var self = {
 
 		init: function() {
@@ -27,13 +29,15 @@ smol.menu.user = (function() {
 
 			if ('Notification' in window) {
 				if (Notification.permission == 'granted') {
-					$('#user-notifications').html('<div class="user-notification-status">Enabled</div>');
+					$('#user-notifications').html('<select><option>enabled</option><option>disabled</option></select>');
+					$('#user-notifications select').val(self.get_notify_status());
 				} else {
 					$('#user-notifications a').click(function(e) {
 						e.preventDefault();
 						Notification.requestPermission(function(permission) {
 							if (permission == 'granted') {
-								$('#user-notifications').html('<div class="user-notification-status">Enabled</div>');
+								$('#user-notifications').html('<select><option>enabled</option><option>disabled</option></select>');
+								$('#user-notifications select').val(self.get_notify_status());
 							}
 						});
 					});
@@ -86,11 +90,28 @@ smol.menu.user = (function() {
 				};
 			}
 
+			self.set_notify_status($('#user-notifications select').val());
 			smol.menu.hide();
 
 			return {
 				ok: 0 // i.e., don't submit the form data
 			};
+		},
+
+		get_notify_status: function() {
+			if ('localStorage' in window) {
+				if (localStorage.notify_status) {
+					notify_status = localStorage.notify_status;
+				}
+			}
+			return notify_status;
+		},
+
+		set_notify_status: function(status) {
+			notify_status = status;
+			if ('localStorage' in window) {
+				localStorage.notify_status = status;
+			}
 		}
 
 	};
