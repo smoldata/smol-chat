@@ -96,6 +96,7 @@ smol.chat = (function() {
 			});
 			self.socket.on('message', function(data) {
 				self.add_message(data);
+				self.notify(data);
 				self.update_messages_scroll();
 				if (self.socket.id == data.socket_id) {
 					$('#message-input').attr('disabled', null);
@@ -153,6 +154,21 @@ smol.chat = (function() {
 			           esc_message + '</li>';
 			$('#messages').append(html);
 			last_message = msg;
+		},
+
+		notify: function(data) {
+			if (! 'Notification' in window) {
+				return;
+			}
+			if (self.socket.id == data.socket_id) {
+				return;
+			}
+			if (Notification.permission == 'granted') {
+				var user = users[data.socket_id];
+				var notification = new Notification(user.nickname, {
+					body: data.message
+				});
+			}
 		},
 
 		format_message: function(msg) {
@@ -253,7 +269,7 @@ smol.chat = (function() {
 		},
 
 		set_nickname: function(nickname) {
-			if (! nickname.match(/^[a-z0-9_]+$/)) {
+			if (! nickname.match(/^[a-z0-9_]+$/i)) {
 				alert('Sorry, your nickname can only include letters, numbers, or underscores.');
 				return false;
 			}

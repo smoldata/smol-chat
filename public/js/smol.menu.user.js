@@ -24,6 +24,23 @@ smol.menu.user = (function() {
 				color = $('#user-color').val();
 				$('#user-avatar-preview').addClass('color' + parseInt(color));
 			});
+
+			if ('Notification' in window) {
+				if (Notification.permission == 'granted') {
+					$('#user-notifications').html('<div class="user-notification-status">Enabled</div>');
+				} else {
+					$('#user-notifications a').click(function(e) {
+						e.preventDefault();
+						Notification.requestPermission(function(permission) {
+							if (permission == 'granted') {
+								$('#user-notifications').html('<div class="user-notification-status">Enabled</div>');
+							}
+						});
+					});
+				}
+			} else {
+				$('#user-notifications').html('<div class="user-notification-status">Your browser does not support notifications</div>');
+			}
 		},
 
 		show: function() {

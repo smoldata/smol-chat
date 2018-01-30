@@ -6,3 +6,12 @@
 	float: left;
 	margin-left: 10px;
 }
+
+#user-notifications a {
+	margin-left: 0;
+	display: inline-block;
+}
+
+.user-notification-status {
+	font-weight: normal;
+}
