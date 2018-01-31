@@ -11,13 +11,15 @@ smol.chat = (function() {
 		user: null,
 
 		init: function() {
+			self.setup_socket();
+			self.setup_form();
 			self.setup_users(function() {
 				self.setup_messages();
 			});
-			self.setup_socket();
-			self.setup_form();
-			self.setup_avatar();
-			self.setup_colors();
+			self.setup_user(function() {
+				self.setup_avatar();
+				self.setup_colors();
+			});
 		},
 
 		setup_messages: function() {
@@ -32,9 +34,27 @@ smol.chat = (function() {
 		setup_users: function(cb) {
 			$.get('/api/users').then(function(rsp) {
 				users = rsp.users;
-				if (typeof cb == 'function') {
-					cb();
+				cb();
+			});
+		},
+
+		setup_user: function(cb) {
+
+			var new_user = false;
+			if (! 'localStorage' in window || ! localStorage.user) {
+				new_user = true;
+			}
+
+			self.get_user(function() {
+				self.socket.emit('user', self.user);
+				if (new_user) {
+					$('#menu').addClass('no-animation');
+					smol.menu.show('user');
+					setTimeout(function() {
+						$('#menu').removeClass('no-animation');
+					}, 1000);
 				}
+				cb();
 			});
 		},
 
@@ -59,11 +79,10 @@ smol.chat = (function() {
 					$('#message-input').attr('disabled', null);
 				}, 5000);
 			});
+			$('#msg').focus();
 		},
 
 		setup_avatar: function() {
-			self.user = self.get_user();
-			self.socket.emit('user', self.user);
 			$('#avatar').addClass('color' + self.user.color);
 			$('#avatar-icon').addClass('icon' + self.user.icon);
 			$('#avatar').data('color', self.user.color);
@@ -98,24 +117,24 @@ smol.chat = (function() {
 				self.add_message(data);
 				self.notify(data);
 				self.update_messages_scroll();
-				if (self.socket.id == data.socket_id) {
+				if (self.user.id == data.user_id) {
 					$('#message-input').attr('disabled', null);
 					$('#message-input').val('');
 					clearTimeout(sending_timeout);
 				}
 			});
 			self.socket.on('user', function(data) {
-				users[data.socket_id] = data;
+				users[data.id] = data;
 				var esc_nickname = smol.esc_html(data.nickname);
-				$('.user-' + data.socket_id + ' .nickname').html(esc_nickname);
-				$('.user-' + data.socket_id + ' .avatar').each(function(i, el) {
+				$('.user-' + data.id + ' .nickname').html(esc_nickname);
+				$('.user-' + data.id + ' .avatar').each(function(i, el) {
 					var old_color = el.className.match(/color\d+/);
 					if (old_color) {
 						$(el).removeClass(old_color[0]);
 						$(el).addClass('color' + data.color);
 					}
 				});
-				$('.user-' + data.socket_id + ' .avatar-icon').each(function(i, el) {
+				$('.user-' + data.id + ' .avatar-icon').each(function(i, el) {
 					var old_icon = el.className.match(/icon\d+/);
 					if (old_icon) {
 						$(el).removeClass(old_icon[0]);
@@ -123,17 +142,16 @@ smol.chat = (function() {
 					}
 				});
 			});
-			$('#msg').focus();
 		},
 
 		add_message: function(msg) {
-			var user = users[msg.socket_id];
+			var user = users[msg.user_id];
 			if (! user) {
-				console.error('Could not find user ' + msg.socket_id);
+				console.error('Could not find user ' + msg.user_id);
 				console.log('msg', msg);
 				return;
 			}
-			var esc_id = smol.esc_html(msg.socket_id);
+			var esc_id = smol.esc_html(msg.user_id);
 			var classname = 'message user-' + esc_id;
 			var esc_message = smol.esc_html(msg.message);
 			esc_message = self.format_message(esc_message);
@@ -142,7 +160,7 @@ smol.chat = (function() {
 			var esc_color = smol.esc_html(user.color);
 			var esc_icon = smol.esc_html(user.icon);
 
-			if (last_message && last_message.socket_id == msg.socket_id) {
+			if (last_message && last_message.user_id == msg.user_id) {
 				classname += ' hide-sender';
 			}
 			classname += ' color' + esc_color;
@@ -160,14 +178,14 @@ smol.chat = (function() {
 			if (! 'Notification' in window) {
 				return;
 			}
-			if (self.socket.id == data.socket_id) {
+			if (self.user.id == data.user_id) {
 				return;
 			}
 			if (Notification.permission != 'granted') {
 				return;
 			}
 			if (smol.menu.user.get_notify_status() == 'enabled') {
-				var user = users[data.socket_id];
+				var user = users[data.user_id];
 				var notification = new Notification(user.nickname, {
 					body: data.message
 				});
@@ -215,10 +233,16 @@ smol.chat = (function() {
 			return false;
 		},
 
-		get_user: function() {
+		get_user: function(cb) {
+
+			if (typeof cb != 'function') {
+				console.error('you have to call get_user with a callback');
+				return false;
+			}
 
 			if (self.user) {
-				return self.user;
+				cb(self.user);
+				return;
 			}
 
 			if (window.localStorage && localStorage.user) {
@@ -230,19 +254,18 @@ smol.chat = (function() {
 			}
 
 			if (! self.user) {
-				self.set_user({
-					nickname: smol.names.pick_random(),
-					color: Math.ceil(Math.random() * 10),
-					icon: Math.ceil(Math.random() * 25)
+				$.get('/api/id', function(data) {
+					self.set_user({
+						id: data.id,
+						nickname: smol.names.pick_random(),
+						color: Math.ceil(Math.random() * 10),
+						icon: Math.ceil(Math.random() * 25)
+					});
+					cb(self.user);
 				});
-				$('#menu').addClass('no-animation');
-				smol.menu.show('user');
-				setTimeout(function() {
-					$('#menu').removeClass('no-animation');
-				}, 1000);
+			} else {
+				cb(self.user);
 			}
-
-			return self.user;
 		},
 
 		set_user: function(props) {
