@@ -241,7 +241,15 @@ smol.chat = (function() {
 			}
 
 			if (self.user) {
-				cb(self.user);
+				if (! self.user.id) {
+					// This is for backwards-compatibility.
+					$.get('/api/id', function(data) {
+						self.user.id = data.id;
+						cb(self.user);
+					});
+				} else {
+					cb(self.user);
+				}
 				return;
 			}
 
