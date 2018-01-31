@@ -184,12 +184,16 @@ smol.chat = (function() {
 			if (Notification.permission != 'granted') {
 				return;
 			}
-			if (smol.menu.user.get_notify_status() == 'enabled') {
-				var user = users[data.user_id];
-				var notification = new Notification(user.nickname, {
-					body: data.message
-				});
+			if (document.visibilityState == 'visible') {
+				return;
 			}
+			if (smol.menu.user.get_notify_status() != 'enabled') {
+				return;
+			}
+			var user = users[data.user_id];
+			var notification = new Notification(user.nickname, {
+				body: data.message
+			});
 		},
 
 		format_message: function(msg) {
