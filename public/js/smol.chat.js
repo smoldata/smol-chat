@@ -244,7 +244,9 @@ smol.chat = (function() {
 				if (! self.user.id) {
 					// This is for backwards-compatibility.
 					$.get('/api/id', function(data) {
-						self.user.id = data.id;
+						self.set_user({
+							id: data.id
+						});
 						cb(self.user);
 					});
 				} else {
@@ -268,6 +270,14 @@ smol.chat = (function() {
 						nickname: smol.names.pick_random(),
 						color: Math.ceil(Math.random() * 10),
 						icon: Math.ceil(Math.random() * 25)
+					});
+					cb(self.user);
+				});
+			} else if (! self.user.id) {
+				// This is for backwards-compatibility.
+				$.get('/api/id', function(data) {
+					self.set_user({
+						id: data.id
 					});
 					cb(self.user);
 				});
