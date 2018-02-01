@@ -79,7 +79,18 @@ smol.chat = (function() {
 					$('#message-input').attr('disabled', null);
 				}, 5000);
 			});
-			$('#msg').focus();
+			$('#message-input').focus();
+
+			$('#message-input').keypress(function(e) {
+				if (e.keyCode == 38) { // up arrow
+					var $msgs = $('.message.user-' + self.user.id);
+					if ($msgs.length > 0) {
+						var last_sent = $msgs[$msgs.length - 1];
+						var id = parseInt($(last_sent).data('id'));
+						self.edit_message(id);
+					}
+				}
+			});
 		},
 
 		setup_avatar: function() {
@@ -153,7 +164,6 @@ smol.chat = (function() {
 				return;
 			}
 
-			console.log(msg);
 			if ($('#message-' + msg.id).length > 0) {
 				var html = self.format_message(msg.message);
 				var esc_html = smol.esc_html(html);
@@ -182,7 +192,7 @@ smol.chat = (function() {
 				classname += ' edited';
 			}
 
-			var html = '<li id="message-' + esc_id + '" class="' + classname + '" title="' + esc_created + '"' +
+			var html = '<li id="message-' + esc_id + '" class="' + classname + '" ' +
 			              ' data-message="' + esc_message + '" data-id="' + esc_id + '" data-created="' + esc_created + '">' +
 			           '<div class="avatar color' + esc_color + '">' +
 			           '<div class="avatar-icon icon' + esc_icon + '"></div></div>' +
@@ -239,6 +249,13 @@ smol.chat = (function() {
 			var msg = $('#message-' + id).data('message');
 			$('#message-' + id).addClass('editing');
 
+			var cancel_edit = function() {
+				$('#message-' + id).removeClass('editing');
+				var body = self.format_message(msg);
+				$('#message-' + id + ' .body').html(body);
+				$('#message-input').focus();
+			}
+
 			var html = '<form><input type="text">' +
 			           '<div class="buttons">' +
 			           '<button type="submit" class="btn btn-save">Update</button>' +
@@ -247,6 +264,12 @@ smol.chat = (function() {
 			$('#message-' + id + ' .body').html(html);
 			$('#message-' + id + ' input').val(msg);
 			$('#message-' + id + ' input').focus();
+
+			$('#message-' + id + ' input').keypress(function(e) {
+				if (e.keyCode == 27) {
+					cancel_edit();
+				}
+			});
 
 			$('#message-' + id + ' form').submit(function(e) {
 				e.preventDefault();
@@ -257,13 +280,12 @@ smol.chat = (function() {
 					message: message
 				});
 				$('#message-' + id).removeClass('editing');
+				$('#message-input').focus();
 			});
 
 			$('#message-' + id + ' .btn-cancel').click(function(e) {
 				e.preventDefault();
-				$('#message-' + id).removeClass('editing');
-				var body = self.format_message(msg);
-				$('#message-' + id + ' .body').html(body);
+				cancel_edit();
 			});
 
 			self.update_messages_scroll();
