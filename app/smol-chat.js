@@ -55,6 +55,13 @@ dotdata.index('messages').then(function(index) {
 			console.log('Error loading message ' + index.data[i] + ':');
 			console.log(err);
 		}
+		messages.sort(function(a, b) {
+			if (a.created < b.created) {
+				return -1;
+			} else {
+				return 1;
+			}
+		});
 	}
 });
 
