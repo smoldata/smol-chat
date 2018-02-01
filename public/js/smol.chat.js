@@ -62,6 +62,9 @@ smol.chat = (function() {
 			$('#message-form').submit(function(e) {
 				e.preventDefault();
 				var msg = $('#message-input').val();
+				if (! self.validate_message(msg)) {
+					return;
+				}
 				var cmd = self.message_command(msg);
 				if (cmd == -1) {
 					return;
@@ -154,6 +157,16 @@ smol.chat = (function() {
 					}
 				});
 			});
+		},
+
+		validate_message: function(msg) {
+			if (msg == '') {
+				return false;
+			}
+			if (msg.match(/^\s+$/)) {
+				return false;
+			}
+			return true;
 		},
 
 		add_message: function(msg) {
@@ -274,6 +287,9 @@ smol.chat = (function() {
 			$('#message-' + id + ' form').submit(function(e) {
 				e.preventDefault();
 				var message = $('#message-' + id + ' input').val();
+				if (! self.validate_message(message)) {
+					return;
+				}
 				self.socket.emit('message', {
 					id: id,
 					created: $('#message-' + id).data('created'),
