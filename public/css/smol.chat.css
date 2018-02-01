@@ -141,9 +141,9 @@ code {
 }
 
 .btn:hover {
-	color: #fff;
-	background: #000;
-	border-color: #000;
+	color: #fff !important;
+	background: #000 !important;
+	border-color: #000 !important;
 }
 
 .btn-save {
@@ -151,6 +151,66 @@ code {
 	background-color: #8442D5;
 	border-color: #8442D5;
 	margin-left: 0;
+}
+
+body.color1 .btn,
+body.color2 .btn {
+	color: #1f78b4;
+	border-color: #1f78b4;
+}
+
+body.color3 .btn,
+body.color4 .btn {
+	color: #33a02c;
+	border-color: #33a02c;
+}
+
+body.color5 .btn,
+body.color6 .btn {
+	color: #e31a1c;
+	border-color: #e31a1c;
+}
+
+body.color7 .btn,
+body.color8 .btn {
+	color: #ff7f00;
+	border-color: #ff7f00;
+}
+
+body.color9 .btn,
+body.color10 .btn {
+	color: #6a3d9a;
+	border-color: #6a3d9a;
+}
+
+body.color1 .btn-save,
+body.color2 .btn-save {
+	color: #fff;
+	background-color: #1f78b4;
+}
+
+body.color3 .btn-save,
+body.color4 .btn-save {
+	color: #fff;
+	background-color: #33a02c;
+}
+
+body.color5 .btn-save,
+body.color6 .btn-save {
+	color: #fff;
+	background-color: #e31a1c;
+}
+
+body.color7 .btn-save,
+body.color8 .btn-save {
+	color: #fff;
+	background-color: #ff7f00;
+}
+
+body.color9 .btn-save,
+body.color10 .btn-save {
+	color: #fff;
+	background-color: #6a3d9a;
 }
 
 #app {
@@ -166,8 +226,37 @@ code {
 }
 
 #messages .message {
+	position: relative;
 	padding: 7px 0;
 	border-bottom: 1px solid #dedede;
+}
+
+#messages .content {
+	width: calc(100% - 65px);
+	float: left;
+}
+
+#messages .message .edit {
+	position: absolute;
+	right: 7px;
+	top: 3.5px;
+	cursor: pointer;
+	color: #999;
+}
+
+#messages .editing .edit {
+	display: none;
+}
+
+#messages .edited .body::after {
+	color: #999;
+	content: " (edited)";
+	font-size: 12px;
+	margin-left: 3px;
+}
+
+#messages .editing .body::after {
+	display: none;
 }
 
 #messages code {
@@ -348,4 +437,21 @@ http://colorbrewer2.org/#type=qualitative&scheme=Paired&n=10
 
 .hide-sender .nickname {
 	display: none;
+}
+
+.message form {
+	margin-top: -5px;
+}
+
+.message input {
+	width: 100%;
+}
+
+.message .buttons {
+	margin-top: 7px;
+}
+
+.message .buttons .btn {
+	font-size: 11px;
+	padding: 7px 12px;
 }

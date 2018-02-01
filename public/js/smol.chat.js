@@ -95,6 +95,7 @@ smol.chat = (function() {
 		},
 
 		setup_colors: function() {
+			$(document.body).addClass('color' + self.user.color);
 			var rgb = smol.color.get_rgb('#avatar');
 			var hsl = smol.color.rgb2hsl(rgb);
 			hsl.l = 50;
@@ -151,10 +152,22 @@ smol.chat = (function() {
 				console.log('msg', msg);
 				return;
 			}
-			var esc_id = smol.esc_html(msg.user_id);
-			var classname = 'message user-' + esc_id;
+
+			console.log(msg);
+			if ($('#message-' + msg.id).length > 0) {
+				var html = self.format_message(msg.message);
+				var esc_html = smol.esc_html(html);
+				$('#message-' + msg.id + ' .body').html(esc_html);
+				$('#message-' + msg.id).addClass('edited');
+				$('#message-' + msg.id).data('message', msg.message);
+				return;
+			}
+
+			var esc_id = smol.esc_html(msg.id);
+			var esc_user_id = smol.esc_html(msg.user_id);
+			var classname = 'message user-' + esc_user_id;
 			var esc_message = smol.esc_html(msg.message);
-			esc_message = self.format_message(esc_message);
+			var esc_html_message = self.format_message(esc_message);
 			var esc_created = smol.esc_html(msg.created);
 			var esc_nickname = smol.esc_html(user.nickname);
 			var esc_color = smol.esc_html(user.color);
@@ -165,13 +178,35 @@ smol.chat = (function() {
 			}
 			classname += ' color' + esc_color;
 
-			var html = '<li class="' + classname + '" title="' + esc_created + '">' +
+			if (msg.created && msg.updated && msg.created != msg.updated) {
+				classname += ' edited';
+			}
+
+			var html = '<li id="message-' + esc_id + '" class="' + classname + '" title="' + esc_created + '"' +
+			              ' data-message="' + esc_message + '" data-id="' + esc_id + '" data-created="' + esc_created + '">' +
 			           '<div class="avatar color' + esc_color + '">' +
 			           '<div class="avatar-icon icon' + esc_icon + '"></div></div>' +
-			           '<div class="nickname" title="Connection ' + esc_id + '">' + esc_nickname + '</div>' +
-			           esc_message + '</li>';
+			           '<div class="content">' +
+			           '<div class="nickname">' + esc_nickname + '</div>' +
+			           '<div class="body">' + esc_html_message + '</div>' +
+			           '</div><br class="clear"></li>';
 			$('#messages').append(html);
 			last_message = msg;
+
+			if (msg.user_id == self.user.id) {
+				$('#message-' + esc_id).mouseenter(function() {
+					$('#message-' + esc_id).append('<span class="edit">edit</span>');
+				});
+				$('#message-' + esc_id).mouseleave(function() {
+					$('#message-' + esc_id + ' .edit').remove();
+				});
+				$('#message-' + esc_id).click(function(e) {
+					if (! $(e.target).hasClass('edit')) {
+						return true;
+					}
+					self.edit_message(parseInt(esc_id));
+				});
+			}
 		},
 
 		notify: function(data) {
@@ -194,6 +229,44 @@ smol.chat = (function() {
 			var notification = new Notification(user.nickname, {
 				body: data.message
 			});
+		},
+
+		edit_message: function(id) {
+			if ($('#message-' + id).length == 0) {
+				return;
+			}
+
+			var msg = $('#message-' + id).data('message');
+			$('#message-' + id).addClass('editing');
+
+			var html = '<form><input type="text">' +
+			           '<div class="buttons">' +
+			           '<button type="submit" class="btn btn-save">Update</button>' +
+			           '<button class="btn btn-cancel">Cancel</button>' +
+			           '</div></form>';
+			$('#message-' + id + ' .body').html(html);
+			$('#message-' + id + ' input').val(msg);
+			$('#message-' + id + ' input').focus();
+
+			$('#message-' + id + ' form').submit(function(e) {
+				e.preventDefault();
+				var message = $('#message-' + id + ' input').val();
+				self.socket.emit('message', {
+					id: id,
+					created: $('#message-' + id).data('created'),
+					message: message
+				});
+				$('#message-' + id).removeClass('editing');
+			});
+
+			$('#message-' + id + ' .btn-cancel').click(function(e) {
+				e.preventDefault();
+				$('#message-' + id).removeClass('editing');
+				var body = self.format_message(msg);
+				$('#message-' + id + ' .body').html(body);
+			});
+
+			self.update_messages_scroll();
 		},
 
 		format_message: function(msg) {

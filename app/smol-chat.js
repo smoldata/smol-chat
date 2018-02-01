@@ -104,13 +104,29 @@ io.on('connection', function(socket) {
 
 	socket.on('message', function(data) {
 		var user = users[user_id];
-		var msg = {
-			id: sequence.next(),
-			user_id: parseInt(user.id),
-			created: (new Date()).toJSON(),
-			message: data.message
-		};
-		messages.push(msg);
+		if (data.id) {
+			var msg = {
+				id: parseInt(data.id),
+				user_id: parseInt(user.id),
+				message: data.message,
+				created: data.created,
+				updated: (new Date()).toJSON()
+			};
+			for (var i = 0; i < messages.length; i++) {
+				if (messages[i].id == msg.id) {
+					messages[i] = msg;
+				}
+			}
+		} else {
+			var msg = {
+				id: sequence.next(),
+				user_id: parseInt(user.id),
+				message: data.message,
+				created: (new Date()).toJSON(),
+				updated: (new Date()).toJSON()
+			};
+			messages.push(msg);
+		}
 		io.emit('message', msg);
 		dotdata.set('messages:' + parseInt(msg.id), msg);
 	});
