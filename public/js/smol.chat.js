@@ -5,6 +5,7 @@ smol.chat = (function() {
 	var sending_timeout = null;
 	var last_message = null;
 	var users = {};
+	var unread_messages = false;
 
 	var self = {
 
@@ -13,6 +14,7 @@ smol.chat = (function() {
 		init: function() {
 			self.setup_socket();
 			self.setup_form();
+			self.setup_visibility();
 			self.setup_users(function() {
 				self.setup_messages();
 			});
@@ -120,6 +122,7 @@ smol.chat = (function() {
 			var light = 'rgb(' + light.r + ', ' + light.g + ', ' + light.b + ')';
 			$('#message-input').css('background-color', dark);
 			$('#message-submit').css('background-color', light);
+			self.update_favicon();
 		},
 
 		setup_socket: function() {
@@ -156,6 +159,15 @@ smol.chat = (function() {
 						$(el).addClass('icon' + data.icon);
 					}
 				});
+			});
+		},
+
+		setup_visibility: function() {
+			$(document).on('visibilitychange', function() {
+				if (document.visibilityState == 'visible') {
+					unread_messages = false;
+				}
+				self.update_favicon();
 			});
 		},
 
@@ -245,9 +257,14 @@ smol.chat = (function() {
 			if (document.visibilityState == 'visible') {
 				return;
 			}
+
+			unread_messages = true;
+			self.update_favicon();
+
 			if (smol.menu.user.get_notify_status() != 'enabled') {
 				return;
 			}
+
 			var user = users[data.user_id];
 			var notification = new Notification(user.nickname, {
 				body: data.message
@@ -305,6 +322,19 @@ smol.chat = (function() {
 			});
 
 			self.update_messages_scroll();
+		},
+
+		update_favicon: function() {
+			var favicon = self.user.color;
+			if (self.user.color % 2 == 1) {
+				favicon++;
+			}
+			var status = '';
+			if (unread_messages) {
+				status = '-unread';
+			}
+			var url = '/img/favicon' + favicon + status + '.png';
+			$('#favicon').attr('href', url);
 		},
 
 		format_message: function(msg) {
