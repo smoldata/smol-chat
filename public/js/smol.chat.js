@@ -261,7 +261,11 @@ smol.chat = (function() {
 			unread_messages = true;
 			self.update_favicon();
 
-			if (smol.menu.user.get_notify_status() != 'enabled') {
+			if (smol.menu.user.get_notify_status() == 'disabled') {
+				return;
+			}
+			if (smol.menu.user.get_notify_status() == 'mentions' &&
+			    ! self.check_message_mention(data)) {
 				return;
 			}
 
@@ -344,6 +348,10 @@ smol.chat = (function() {
 			msg = msg.replace(/^_([^_]+)_/g, '<em>$1</em>');      // ... or that it's at the beginning
 			msg = msg.replace(new RegExp('(\\s)\\*([^*]+)\\*', 'g'), '$1<strong>$2</strong>');
 			msg = msg.replace(new RegExp('^\\*([^*]+)\\*', 'g'), '<strong>$1</strong>');
+			msg = msg.replace(/@(all|channel|everyone|here)/g, '<strong>@$1</strong>');
+			for (id in users) {
+				msg = msg.replace(new RegExp('@(' + users[id].nickname + ')', 'g'), '<strong>@$1</strong>');
+			}
 			return msg;
 		},
 
@@ -495,6 +503,16 @@ smol.chat = (function() {
 			});
 			self.setup_colors();
 			return true;
+		},
+
+		check_message_mention: function(data) {
+			if (data.message.match(/@(all|channel|everyone|here)/)) {
+				return true;
+			}
+			if (data.message.indexOf('@' + self.user.nickname) !== -1) {
+				return true;
+			}
+			return false;
 		}
 
 	};

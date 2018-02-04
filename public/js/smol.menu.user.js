@@ -3,7 +3,7 @@ smol.menu = smol.menu || {};
 
 smol.menu.user = (function() {
 
-	var notify_status = 'enabled';
+	var notify_status = 'mentions';
 
 	var self = {
 
@@ -28,15 +28,20 @@ smol.menu.user = (function() {
 			});
 
 			if ('Notification' in window) {
+				var select_html = '<select>' +
+				                  '<option value="all">enabled: all messages</option>' +
+				                  '<option value="mentions">enabled: @user mentions</option>' +
+				                  '<option>disabled</option>' +
+				                  '</select>';
 				if (Notification.permission == 'granted') {
-					$('#user-notifications').html('<select><option>enabled</option><option>disabled</option></select>');
+					$('#user-notifications').html(select_html);
 					$('#user-notifications select').val(self.get_notify_status());
 				} else {
 					$('#user-notifications a').click(function(e) {
 						e.preventDefault();
 						Notification.requestPermission(function(permission) {
 							if (permission == 'granted') {
-								$('#user-notifications').html('<select><option>enabled</option><option>disabled</option></select>');
+								$('#user-notifications').html(select_html);
 								$('#user-notifications select').val(self.get_notify_status());
 							}
 						});
@@ -103,6 +108,9 @@ smol.menu.user = (function() {
 				if (localStorage.notify_status) {
 					notify_status = localStorage.notify_status;
 				}
+			}
+			if (notify_status == 'enabled') {
+				notify_status = 'mentions';
 			}
 			return notify_status;
 		},
