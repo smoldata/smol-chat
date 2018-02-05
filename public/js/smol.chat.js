@@ -342,7 +342,13 @@ smol.chat = (function() {
 		},
 
 		format_message: function(msg) {
-			msg = msg.replace(/(https?:\/\/\S+)/g, '<a href="$1" target="_blank">$1</a>');
+			msg = msg.replace(/https?:\/\/\S+/g, function(url) {
+				var text = url;
+				if (text.length > 64) {
+					text = text.substr(0, 64) + '...';
+				}
+				return '<a href="' + url + '" target="_blank">' + text + '</a>';
+			});
 			msg = msg.replace(/`([^`]+)`/g, '<code>$1</code>');
 			msg = msg.replace(/(\s)_([^_]+)_/g, '$1<em>$2</em>'); // make sure there's preceding whitespace
 			msg = msg.replace(/^_([^_]+)_/g, '<em>$1</em>');      // ... or that it's at the beginning
