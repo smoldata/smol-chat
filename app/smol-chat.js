@@ -131,7 +131,7 @@ io.on('connection', function(socket) {
 				user_id: parseInt(user.id),
 				message: data.message,
 				created: created,
-				updated: updated
+				updated: created
 			};
 			messages.push(msg);
 		}
