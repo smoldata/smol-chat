@@ -125,12 +125,13 @@ io.on('connection', function(socket) {
 				}
 			}
 		} else {
+			var created = (new Date()).toJSON();
 			var msg = {
 				id: sequence.next(),
 				user_id: parseInt(user.id),
 				message: data.message,
-				created: (new Date()).toJSON(),
-				updated: (new Date()).toJSON()
+				created: created,
+				updated: updated
 			};
 			messages.push(msg);
 		}

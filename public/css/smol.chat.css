@@ -231,6 +231,13 @@ body.color10 .btn-save {
 	border-bottom: 1px solid #dedede;
 }
 
+#messages .system-message {
+	color: #999;
+	font-size: 12px;
+	font-weight: 600;
+	padding-top: 7px;
+}
+
 #messages .content {
 	width: calc(100% - 65px);
 	float: left;

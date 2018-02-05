@@ -4,6 +4,7 @@ smol.chat = (function() {
 
 	var sending_timeout = null;
 	var last_message = null;
+	var last_time_marker = null;
 	var users = {};
 	var unread_messages = false;
 
@@ -182,6 +183,7 @@ smol.chat = (function() {
 		},
 
 		add_message: function(msg) {
+
 			var user = users[msg.user_id];
 			if (! user) {
 				console.error('Could not find user ' + msg.user_id);
@@ -189,6 +191,7 @@ smol.chat = (function() {
 				return;
 			}
 
+			// Editing an existing message
 			if ($('#message-' + msg.id).length > 0) {
 				var html = self.format_message(msg.message);
 				var esc_html = smol.esc_html(html);
@@ -198,11 +201,25 @@ smol.chat = (function() {
 				return;
 			}
 
+			var curr_created = new Date(msg.created);
+			var threshold = 1000 * 60 * 5;
+
+			if (last_time_marker) {
+				var time_diff = curr_created.getTime() - last_time_marker.getTime();
+			}
+			if (! last_time_marker || time_diff > threshold) {
+				last_time_marker = curr_created;
+				var curr_time = self.format_time(curr_created);
+				self.add_system_message({
+					message: curr_time
+				});
+			}
+
 			var esc_id = smol.esc_html(msg.id);
 			var esc_user_id = smol.esc_html(msg.user_id);
 			var classname = 'message user-' + esc_user_id;
 			var esc_message = smol.esc_html(msg.message);
-			var esc_html_message = self.format_message(esc_message);
+			var esc_html_message = msg.created + ' ' + self.format_message(esc_message);
 			var esc_created = smol.esc_html(msg.created);
 			var esc_nickname = smol.esc_html(user.nickname);
 			var esc_color = smol.esc_html(user.color);
@@ -242,6 +259,14 @@ smol.chat = (function() {
 					self.edit_message(parseInt(esc_id));
 				});
 			}
+		},
+
+		add_system_message: function(msg) {
+			var esc_message = smol.esc_html(msg.message);
+			var html = '<li class="system-message">' + esc_message + '</li>';
+			$('#messages').append(html);
+			last_message = msg;
+			self.update_messages_scroll();
 		},
 
 		notify: function(data) {
@@ -359,6 +384,52 @@ smol.chat = (function() {
 				msg = msg.replace(new RegExp('@(' + users[id].nickname + ')', 'g'), '<strong>@$1</strong>');
 			}
 			return msg;
+		},
+
+		format_time: function(when) {
+			var h = when.getHours();
+			var mm = when.getMinutes();
+			var a = 'am';
+			if (h > 12) {
+				h -= 12;
+				a = 'pm';
+			}
+			if (mm < 10) {
+				mm = '0' + mm;
+			}
+			var day = self.format_day(when);
+
+			return day + h + ':' + mm + a;
+		},
+
+		format_day: function(when) {
+			var date = self.get_iso_date(when);
+			var today_date = self.get_iso_date(new Date());
+			var yesterday_time = (new Date()).getTime() - 24 * 60 * 60 * 1000;
+			var yesterday_date = self.get_iso_date(new Date(yesterday_time));
+			if (date == today_date) {
+				return '';
+			}
+			if (date == yesterday_date) {
+				return 'yesterday, ';
+			}
+			var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+			var month = months[when.getMonth()];
+			return month + ' ' + when.getDate() + ', ';
+		},
+
+		get_iso_date: function(when) {
+			// Returns YYYY-MM-DD
+			var yyyy = when.getYear() + 1900;
+			var mm = when.getMonth() + 1;
+			if (mm < 10) {
+				mm = '0' + mm;
+			}
+			var dd = when.getDate();
+			if (dd < 10) {
+				dd = '0' + dd;
+			}
+			return yyyy + '-' + mm + '-' + dd;
 		},
 
 		update_messages_scroll: function() {
