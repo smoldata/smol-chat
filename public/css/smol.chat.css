@@ -222,13 +222,14 @@ body.color10 .btn-save {
 #messages {
 	height: calc(100vh - 60px);
 	overflow-y: auto;
-	margin-bottom: 7.5px;
+	margin-bottom: 1px;
 }
 
 #messages .message {
 	position: relative;
-	padding: 7px 0;
-	border-bottom: 1px solid #dedede;
+	padding: 12px 0 0 0;
+	margin-top: 12px;
+	border-top: 1px solid #dedede;
 }
 
 #messages .system-message {
@@ -236,6 +237,27 @@ body.color10 .btn-save {
 	font-size: 12px;
 	font-weight: 600;
 	padding-top: 7px;
+	margin-bottom: -10px;
+}
+
+#messages .system-message:first-child {
+	padding-top: 15px;
+}
+
+#messages .message.hide-sender {
+	padding-left: 55px;
+	margin-top: 0;
+	border-top: none;
+	padding-top: 0;
+	padding-bottom: 0;
+}
+
+#messages .message:last-child {
+	padding-bottom: 15px;
+}
+
+#messages .message.hide-sender .avatar {
+	display: none;
 }
 
 #messages .content {
@@ -385,14 +407,6 @@ http://colorbrewer2.org/#type=qualitative&scheme=Paired&n=10
 	margin-right: 10px;
 }
 
-#messages .hide-sender {
-	padding-left: 55px;
-}
-
-#messages .hide-sender .avatar {
-	display: none;
-}
-
 #message-input {
 	float: left;
 	width: 500px;
@@ -435,7 +449,7 @@ http://colorbrewer2.org/#type=qualitative&scheme=Paired&n=10
 
 .message .nickname {
 	font-weight: bold;
-	margin-top: -4px;
+	margin-top: -2px;
 }
 
 .hide-sender {
