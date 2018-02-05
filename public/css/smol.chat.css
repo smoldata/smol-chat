@@ -220,7 +220,7 @@ body.color10 .btn-save {
 }
 
 #messages {
-	height: calc(100vh - 60px);
+	height: calc(100vh - 50px);
 	overflow-y: auto;
 	margin-bottom: 1px;
 }
