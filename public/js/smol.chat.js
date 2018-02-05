@@ -285,6 +285,7 @@ smol.chat = (function() {
 
 			unread_messages = true;
 			self.update_favicon();
+			$('#notify-audio')[0].play();
 
 			if (smol.menu.user.get_notify_status() == 'disabled') {
 				return;
