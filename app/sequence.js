@@ -1,5 +1,9 @@
+var path = require('path');
 var dotdata = require('./dotdata');
 
+dotdata.init({
+	data_dir: path.dirname(__dirname) + '/.data'
+});
 var sequence = 0;
 
 dotdata.get('sequence').then(function(data) {
@@ -13,8 +17,7 @@ dotdata.get('sequence').then(function(data) {
 module.exports = {
 
 	next: function() {
-		var next = sequence + 1;
-		sequence++;
+		var next = ++sequence;
 		dotdata.set('sequence', {
 			sequence: next
 		});

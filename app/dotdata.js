@@ -1,11 +1,19 @@
 var fs = require('fs');
 var path = require('path');
 
+var options = {
+	data_dir: __dirname + '/.data'
+};
+
 var dotdata = {
 
-	init: function() {
-		var root = path.dirname(__dirname);
-		dotdata.mkdir(root + '/.data');
+	init: function(opt) {
+		if (opt) {
+			for (var key in opt) {
+				options[key] = opt[key];
+			}
+		}
+		dotdata.mkdir(options.data_dir);
 	},
 
 	get: function(name) {
@@ -162,7 +170,7 @@ var dotdata = {
 			fs.readdir(dir, function(err, files) {
 
 				var root = path.dirname(__dirname);
-				var name = dir.replace(root + '/.data', '')
+				var name = dir.replace(options.data_dir, '')
 				              .replace(/\//g, ':') + ':.index';
 
 				if (name.substr(0, 1) == ':') {
@@ -266,8 +274,7 @@ var dotdata = {
 			return null;
 		}
 		name = name.replace(/:/g, '/');
-		var root = path.dirname(__dirname);
-		var filename = root + '/.data/' + name + '.json';
+		var filename = options.data_dir + '/' + name + '.json';
 		return filename;
 	},
 

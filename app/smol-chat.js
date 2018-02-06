@@ -19,14 +19,12 @@ app.use(body_parser.urlencoded({ extended: true })); // application/x-www-form-u
 // http://expressjs.com/en/starter/static-files.html
 app.use(express.static('public'));
 
-// http://expressjs.com/en/starter/basic-routing.html
-app.get("/", function(request, response) {
-	var root = path.dirname(__dirname);
-	response.sendFile(root + '/views/index.html');
-});
-
 var messages = [];
 var users = {};
+
+dotdata.init({
+	data_dir: path.dirname(__dirname) + '/.data'
+});
 
 dotdata.index('users').then(function(index) {
 	var filename, json, user;
@@ -63,6 +61,12 @@ dotdata.index('messages').then(function(index) {
 			}
 		});
 	}
+});
+
+// Homepage
+app.get("/", function(request, response) {
+	var root = path.dirname(__dirname);
+	response.sendFile(root + '/views/index.html');
 });
 
 // Inspired by Artisinal Integers, this just returns an incrementing integer
