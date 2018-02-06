@@ -19,7 +19,7 @@ app.use(body_parser.urlencoded({ extended: true })); // application/x-www-form-u
 // http://expressjs.com/en/starter/static-files.html
 app.use(express.static('public'));
 
-var messages = [];
+var messages = {};
 var users = {};
 
 dotdata.init({
@@ -28,38 +28,60 @@ dotdata.init({
 
 dotdata.index('users').then(function(index) {
 	var filename, json, user;
+	var count = 0;
 	for (var i = 0; i < index.data.length; i++) {
 		filename = dotdata.filename('users:' + index.data[i]);
 		try {
 			json = fs.readFileSync(filename);
 			user = JSON.parse(json);
+			if (! user.room) {
+				user.room = 'commons';
+			}
 			users[user.id] = user;
+			count++;
 		} catch (err) {
 			console.log('Error loading user ' + index.data[i] + ':');
 			console.log(err);
 		}
 	}
+	console.log('loaded ' + count + ' users');
 });
 
-dotdata.index('messages').then(function(index) {
-	var filename, json, user;
-	for (var i = 0; i < index.data.length; i++) {
-		filename = dotdata.filename('messages:' + index.data[i]);
-		try {
-			json = fs.readFileSync(filename);
-			msg = JSON.parse(json);
-			messages.push(msg);
-		} catch (err) {
-			console.log('Error loading message ' + index.data[i] + ':');
-			console.log(err);
-		}
-		messages.sort(function(a, b) {
-			if (a.created < b.created) {
-				return -1;
-			} else {
-				return 1;
+function index_room(room) {
+	dotdata.index('rooms:' + room).then(function(index) {
+		var name, filename, json, user;
+		for (var i = 0; i < index.data.length; i++) {
+			try {
+				name = 'rooms:' + room + ':' + index.data[i];
+				filename = dotdata.filename(name);
+				json = fs.readFileSync(filename);
+				msg = JSON.parse(json);
+				if (! messages[room]) {
+					messages[room] = [];
+				}
+				messages[room].push(msg);
+			} catch (err) {
+				console.log('Error loading message ' + index.data[i] + ':');
+				console.log(err);
 			}
-		});
+		}
+		if (messages[room]) {
+			messages[room].sort(function(a, b) {
+				if (a.created < b.created) {
+					return -1;
+				} else {
+					return 1;
+				}
+			});
+		}
+		var count = messages[room].length;
+		console.log('loaded ' + count + ' messages in ' + room);
+	});
+}
+
+dotdata.index('rooms').then(function(index) {
+	for (var i = 0; i < index.dirs.length; i++) {
+		index_room(index.dirs[i]);
 	}
 });
 
@@ -77,10 +99,14 @@ app.get("/api/id", function(request, response) {
 	});
 });
 
-app.get("/api/messages", function(request, response) {
+app.get("/api/:room/messages", function(request, response) {
+	var msgs = [];
+	if (request.params.room in messages) {
+		msgs = messages[request.params.room];
+	}
 	response.send({
 		ok: 1,
-		messages: messages
+		messages: msgs
 	});
 });
 
@@ -96,8 +122,23 @@ io.on('connection', function(socket) {
 	var user_id;
 
 	socket.on('user', function(data) {
-		if (! data || ! data.id || ! data.color || ! data.icon || ! data.nickname) {
+		if (! data ||
+		    ! data.id ||
+		    ! data.color ||
+		    ! data.icon ||
+		    ! data.nickname ||
+		    ! data.room) {
 			console.log('invalid user event:');
+			console.log(data);
+			return;
+		}
+		if (! data.nickname.match(/^[a-z0-9_]+$/i)) {
+			console.log('invalid nickname:');
+			console.log(data);
+			return;
+		}
+		if (! data.room.match(/^[a-z0-9_]+$/i)) {
+			console.log('invalid room:');
 			console.log(data);
 			return;
 		}
@@ -105,12 +146,14 @@ io.on('connection', function(socket) {
 			id: parseInt(data.id),
 			color: parseInt(data.color),
 			icon: parseInt(data.icon),
-			nickname: data.nickname
+			nickname: data.nickname,
+			room: data.room
 		};
 		users[data.id] = user;
-		io.emit('user', user);
 		dotdata.set('users:' + data.id, user);
 		user_id = parseInt(data.id);
+		io.emit('user', user);
+		socket.join(data.room);
 	});
 
 	socket.on('message', function(data) {
@@ -119,6 +162,7 @@ io.on('connection', function(socket) {
 			var msg = {
 				id: parseInt(data.id),
 				user_id: parseInt(user.id),
+				room: user.room,
 				message: data.message,
 				created: data.created,
 				updated: (new Date()).toJSON()
@@ -133,19 +177,20 @@ io.on('connection', function(socket) {
 			var msg = {
 				id: sequence.next(),
 				user_id: parseInt(user.id),
+				room: user.room,
 				message: data.message,
 				created: created,
 				updated: created
 			};
-			messages.push(msg);
+			messages[user.room].push(msg);
 		}
-		io.emit('message', msg);
-		dotdata.set('messages:' + parseInt(msg.id), msg);
+		io.to(user.room).emit('message', msg);
+		dotdata.set('rooms:' + user.room + ':' + parseInt(msg.id), msg);
 	});
 });
 
 // listen for requests :)
 var port = process.env.PORT || 4433;
 var listener = server.listen(port, function() {
-	console.log('Your app is listening on port ' + listener.address().port);
+	console.log('listening on port ' + listener.address().port);
 });

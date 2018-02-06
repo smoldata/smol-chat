@@ -216,13 +216,23 @@ body.color10 .btn-save {
 #app {
 	margin: 0 auto;
 	width: 100%;
-	max-width: 800px;
 }
 
 #messages {
-	height: calc(100vh - 50px);
+	position: fixed;
+	left: 310px;
+	top: 0;
+	width: calc(100vw - 310px);
+	height: calc(100vh - 56px);
 	overflow-y: auto;
 	margin-bottom: 1px;
+}
+
+#message-form {
+	position: fixed;
+	left: 310px;
+	bottom: 10px;
+	width: calc(100vw - 320px);
 }
 
 #messages .message {
@@ -267,8 +277,8 @@ body.color10 .btn-save {
 
 #messages .message .edit {
 	position: absolute;
-	right: 7px;
-	top: 3.5px;
+	right: 10px;
+	top: 4px;
 	cursor: pointer;
 	color: #999;
 }

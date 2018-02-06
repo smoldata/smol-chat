@@ -14,30 +14,60 @@ smol.chat = (function() {
 
 		init: function() {
 			self.setup_socket();
-			self.setup_form();
 			self.setup_visibility();
-			self.setup_users(function() {
-				self.setup_messages();
-			});
 			self.setup_user(function() {
+				self.setup_form();
 				self.setup_avatar();
 				self.setup_colors();
-			});
-		},
-
-		setup_messages: function() {
-			$.get('/api/messages').then(function(rsp) {
-				$.each(rsp.messages, function(i, msg) {
-					self.add_message(msg);
+				self.setup_users(function() {
+					self.setup_messages();
 				});
-				self.update_messages_scroll();
 			});
 		},
 
-		setup_users: function(cb) {
-			$.get('/api/users').then(function(rsp) {
-				users = rsp.users;
-				cb();
+		setup_socket: function() {
+			var base_url = window.location.href.match(/(https?:\/\/.+?)\//);
+			self.socket = io.connect(base_url[1]);
+			self.socket.on('reconnect', function(data) {
+				self.socket.emit('user', self.user);
+			});
+			self.socket.on('message', function(data) {
+				self.add_message(data);
+				self.notify(data);
+				self.update_messages_scroll();
+				if (self.user.id == data.user_id) {
+					$('#message-input').attr('disabled', null);
+					$('#message-input').val('');
+					clearTimeout(sending_timeout);
+				}
+			});
+			self.socket.on('user', function(data) {
+				users[data.id] = data;
+				var esc_nickname = smol.esc_html(data.nickname);
+				$('.user-' + data.id + ' .nickname').html(esc_nickname);
+				$('.user-' + data.id + ' .avatar').each(function(i, el) {
+					var old_color = el.className.match(/color\d+/);
+					if (old_color) {
+						$(el).removeClass(old_color[0]);
+						$(el).addClass('color' + data.color);
+					}
+				});
+				$('.user-' + data.id + ' .avatar-icon').each(function(i, el) {
+					var old_icon = el.className.match(/icon\d+/);
+					if (old_icon) {
+						$(el).removeClass(old_icon[0]);
+						$(el).addClass('icon' + data.icon);
+					}
+				});
+			});
+		},
+
+		setup_visibility: function() {
+			$(document).on('visibilitychange', function() {
+				if (document.visibilityState == 'visible') {
+					unread_messages = false;
+				}
+				self.update_favicon();
 			});
 		},
 
@@ -123,52 +153,23 @@ smol.chat = (function() {
 			var light = 'rgb(' + light.r + ', ' + light.g + ', ' + light.b + ')';
 			$('#message-input').css('background-color', dark);
 			$('#message-submit').css('background-color', light);
+			$('#sidebar').css('background-color', dark);
 			self.update_favicon();
 		},
 
-		setup_socket: function() {
-			var base_url = window.location.href.match(/(https?:\/\/.+?)\//);
-			self.socket = io.connect(base_url[1]);
-			self.socket.on('reconnect', function(data) {
-				self.socket.emit('user', self.user);
-			});
-			self.socket.on('message', function(data) {
-				self.add_message(data);
-				self.notify(data);
-				self.update_messages_scroll();
-				if (self.user.id == data.user_id) {
-					$('#message-input').attr('disabled', null);
-					$('#message-input').val('');
-					clearTimeout(sending_timeout);
-				}
-			});
-			self.socket.on('user', function(data) {
-				users[data.id] = data;
-				var esc_nickname = smol.esc_html(data.nickname);
-				$('.user-' + data.id + ' .nickname').html(esc_nickname);
-				$('.user-' + data.id + ' .avatar').each(function(i, el) {
-					var old_color = el.className.match(/color\d+/);
-					if (old_color) {
-						$(el).removeClass(old_color[0]);
-						$(el).addClass('color' + data.color);
-					}
-				});
-				$('.user-' + data.id + ' .avatar-icon').each(function(i, el) {
-					var old_icon = el.className.match(/icon\d+/);
-					if (old_icon) {
-						$(el).removeClass(old_icon[0]);
-						$(el).addClass('icon' + data.icon);
-					}
-				});
+		setup_users: function(cb) {
+			$.get('/api/users').then(function(rsp) {
+				users = rsp.users;
+				cb();
 			});
 		},
 
-		setup_visibility: function() {
-			$(document).on('visibilitychange', function() {
-				if (document.visibilityState == 'visible') {
-					unread_messages = false;
-				}
-				self.update_favicon();
+		setup_messages: function() {
+			$.get('/api/' + self.user.room + '/messages').then(function(rsp) {
+				$.each(rsp.messages, function(i, msg) {
+					self.add_message(msg);
+				});
+				self.update_messages_scroll();
 			});
 		},
 
@@ -380,7 +381,7 @@ smol.chat = (function() {
 			msg = msg.replace(/^_([^_]+)_/g, '<em>$1</em>');      // ... or that it's at the beginning
 			msg = msg.replace(new RegExp('(\\s)\\*([^*]+)\\*', 'g'), '$1<strong>$2</strong>');
 			msg = msg.replace(new RegExp('^\\*([^*]+)\\*', 'g'), '<strong>$1</strong>');
-			msg = msg.replace(/@(all|channel|everyone|here)/g, '<strong>@$1</strong>');
+			msg = msg.replace(/@(all|room|everyone|here)/g, '<strong>@$1</strong>');
 			for (id in users) {
 				msg = msg.replace(new RegExp('@(' + users[id].nickname + ')', 'g'), '<strong>@$1</strong>');
 			}
@@ -442,11 +443,13 @@ smol.chat = (function() {
 		},
 
 		message_command: function(msg) {
-			var nick = msg.match(/^\/nick (.+)$/);
+			var nick = msg.match(/^\/(nick|name) (.+)$/);
 			var icon = msg.match(/^\/icon (\d+)$/);
 			var color = msg.match(/^\/color (\d+)$/);
+			var join_room = msg.match(/^\/join (.+)$/);
+			//var leave_room = msg.match(/^\/leave (.+)$/);
 			if (nick) {
-				if (! self.set_nickname(nick[1])) {
+				if (! self.set_nickname(nick[2])) {
 					return -1;
 				}
 				return true;
@@ -457,6 +460,11 @@ smol.chat = (function() {
 				return true;
 			} else if (color) {
 				if (! self.set_color(color[1])) {
+					return -1;
+				}
+				return true;
+			} else if (join_room) {
+				if (! self.set_room(join_room[1])) {
 					return -1;
 				}
 				return true;
@@ -472,6 +480,9 @@ smol.chat = (function() {
 			}
 
 			if (self.user) {
+				if (! self.user.room) {
+					self.user.room = 'commons';
+				}
 				if (! self.user.id) {
 					// This is for backwards-compatibility.
 					$.get('/api/id', function(data) {
@@ -489,6 +500,9 @@ smol.chat = (function() {
 			if (window.localStorage && localStorage.user) {
 				try {
 					self.user = JSON.parse(localStorage.user);
+					if (! self.user.room) {
+						self.user.room = 'commons';
+					}
 				} catch(err) {
 					console.error(err);
 				}
@@ -500,7 +514,8 @@ smol.chat = (function() {
 						id: data.id,
 						nickname: smol.names.pick_random(),
 						color: Math.ceil(Math.random() * 10),
-						icon: Math.ceil(Math.random() * 25)
+						icon: Math.ceil(Math.random() * 25),
+						room: 'commons'
 					});
 					cb(self.user);
 				});
@@ -531,6 +546,10 @@ smol.chat = (function() {
 
 			for (key in props) {
 				user[key] = props[key];
+			}
+
+			if (! user.room) {
+				user.room = 'commons';
 			}
 
 			if (window.localStorage) {
@@ -583,8 +602,24 @@ smol.chat = (function() {
 			return true;
 		},
 
+		set_room: function(room) {
+			if (! room.match(/^[a-z0-9_]+$/i)) {
+				alert('Sorry, rooms can only have letters, numbers, or underscrores.');
+				return false;
+			}
+			self.set_user({
+				room: room
+			});
+			self.join_room(room);
+			return true;
+		},
+
+		join_room: function(room) {
+			self.socket.emit('join', room, self.user);
+		},
+
 		check_message_mention: function(data) {
-			if (data.message.match(/@(all|channel|everyone|here)/)) {
+			if (data.message.match(/@(all|room|everyone|here)/)) {
 				return true;
 			}
 			if (data.message.indexOf('@' + self.user.nickname) !== -1) {

@@ -9,6 +9,7 @@
 		<link rel="stylesheet" href="/css/reset.css">
 		<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
 		<link rel="stylesheet" href="/lib/source-sans-pro/source-sans-pro.css">
+		<link rel="stylesheet" href="/css/smol.sidebar.css">
 		<link rel="stylesheet" href="/css/smol.menu.css">
 		<link rel="stylesheet" href="/css/smol.menu.user.css">
 		<link rel="stylesheet" href="/css/smol.chat.css">
@@ -16,6 +17,19 @@
 	</head>
 	<body>
 		<div id="app">
+
+			<div id="sidebar">
+
+				<div id="sidebar-rooms">
+					<h1>rooms</h1>
+					<ul>
+						<li><span class="fa fa-check-circle"></span> commons</li>
+						<!-- <li><span class="fa fa-plus-circle"></span> Create a room</li> -->
+					</ul>
+				</div>
+
+			</div>
+
 			<ul id="messages"></ul>
 			<form id="message-form" action="/api/message" method="post">
 				<div id="avatar" class="avatar">
