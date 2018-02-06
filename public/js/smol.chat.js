@@ -13,8 +13,10 @@ smol.chat = (function() {
 		user: null,
 
 		init: function() {
+			window.users = users;
 			self.setup_socket();
 			self.setup_visibility();
+			self.setup_rooms();
 			self.setup_user(function() {
 				self.setup_form();
 				self.setup_avatar();
@@ -71,6 +73,12 @@ smol.chat = (function() {
 			});
 		},
 
+		setup_rooms: function() {
+			$.get('/api/rooms').then(function(rsp) {
+				smol.sidebar.update_rooms(rsp.rooms);
+			});
+		},
+
 		setup_user: function(cb) {
 
 			var new_user = false;
@@ -87,6 +95,7 @@ smol.chat = (function() {
 						$('#menu').removeClass('no-animation');
 					}, 1000);
 				}
+				self.join_room(self.user.room);
 				cb();
 			});
 		},
@@ -160,12 +169,19 @@ smol.chat = (function() {
 		setup_users: function(cb) {
 			$.get('/api/users').then(function(rsp) {
 				users = rsp.users;
+				console.log(users);
 				cb();
 			});
 		},
 
 		setup_messages: function() {
+			last_message = null;
+			last_time_marker = null;
+			$('#messages').html('<li class="system-message" id="messages-loading">Loading...</li>');
 			$.get('/api/' + self.user.room + '/messages').then(function(rsp) {
+				if (rsp.messages.length == 0) {
+					$('#messages-loading').html('You are the first one to post here.');
+				}
 				$.each(rsp.messages, function(i, msg) {
 					self.add_message(msg);
 				});
@@ -184,6 +200,8 @@ smol.chat = (function() {
 		},
 
 		add_message: function(msg) {
+
+			$('#messages-loading').remove();
 
 			var user = users[msg.user_id];
 			if (! user) {
@@ -464,7 +482,7 @@ smol.chat = (function() {
 				}
 				return true;
 			} else if (join_room) {
-				if (! self.set_room(join_room[1])) {
+				if (! self.join_room(join_room[1])) {
 					return -1;
 				}
 				return true;
@@ -602,7 +620,8 @@ smol.chat = (function() {
 			return true;
 		},
 
-		set_room: function(room) {
+		join_room: function(room) {
+			console.log('join_room: ' + room);
 			if (! room.match(/^[a-z0-9_]+$/i)) {
 				alert('Sorry, rooms can only have letters, numbers, or underscrores.');
 				return false;
@@ -610,12 +629,10 @@ smol.chat = (function() {
 			self.set_user({
 				room: room
 			});
-			self.join_room(room);
+			smol.sidebar.set_room(room);
+			self.socket.emit('join', self.user, room);
+			self.setup_messages();
 			return true;
-		},
-
-		join_room: function(room) {
-			self.socket.emit('join', room, self.user);
 		},
 
 		check_message_mention: function(data) {

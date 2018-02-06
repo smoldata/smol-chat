@@ -99,6 +99,28 @@ app.get("/api/id", function(request, response) {
 	});
 });
 
+app.get("/api/rooms", function(request, response) {
+	var rooms = [];
+	for (var room in messages) {
+		rooms.push(room);
+	}
+	rooms.sort(function(a, b) {
+		if (a == 'commons') {
+			return -1;
+		} else if (b == 'commons') {
+			return 1;
+		} else if (a < b) {
+			return -1;
+		} else {
+			return 1;
+		}
+	});
+	response.send({
+		ok: 1,
+		rooms: rooms
+	});
+});
+
 app.get("/api/:room/messages", function(request, response) {
 	var msgs = [];
 	if (request.params.room in messages) {
@@ -182,10 +204,27 @@ io.on('connection', function(socket) {
 				created: created,
 				updated: created
 			};
+			if (! messages[user.room]) {
+				messages[user.room] = [];
+			}
 			messages[user.room].push(msg);
 		}
 		io.to(user.room).emit('message', msg);
 		dotdata.set('rooms:' + user.room + ':' + parseInt(msg.id), msg);
+	});
+
+	socket.on('join', function(user, room) {
+		if (! room.match(/^[a-z0-9_]+$/i)) {
+			console.log('invalid room:');
+			console.log(data);
+			return;
+		}
+		if (! messages[room]) {
+			messages[room] = [];
+		}
+		var rooms_dir = dotdata.dirname('rooms');
+		dotdata.update_index(rooms_dir);
+		io.to(user.room).emit('join', user);
 	});
 });
 

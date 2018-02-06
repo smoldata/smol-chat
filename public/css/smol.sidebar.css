@@ -14,7 +14,7 @@
 }
 
 #sidebar h1 {
-	margin: 0 10px;
+	margin: 0 15px;
 }
 
 #sidebar-close {
@@ -33,13 +33,18 @@
 }
 
 #sidebar-rooms li {
-	padding: 7.5px 10px;
+	padding: 7.5px 15px;
 	overflow: hidden;
 	cursor: pointer;
 }
 
 #sidebar-rooms li:hover {
 	background: rgba(255, 255, 255, 0.1);
+}
+
+#sidebar-rooms li.selected,
+#sidebar-rooms li.selected:hover {
+	background: rgba(0, 0, 0, 0.3);
 }
 
 #sidebar-rooms li .fa {

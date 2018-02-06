@@ -182,6 +182,11 @@ var dotdata = {
 					dirs: []
 				};
 
+				if (! files) {
+					console.log('could not update index in ' + dir);
+					reject();
+				}
+
 				var write_to_disk = function() {
 					dotdata.set(name, index)
 						.then(function() {
@@ -276,6 +281,11 @@ var dotdata = {
 		name = name.replace(/:/g, '/');
 		var filename = options.data_dir + '/' + name + '.json';
 		return filename;
+	},
+
+	dirname: function(name) {
+		var filename = dotdata.filename(name);
+		return filename.replace(/\.json$/, '');
 	},
 
 	snapshot_filename: function(name, rev) {
