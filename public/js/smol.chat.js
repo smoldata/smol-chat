@@ -16,11 +16,11 @@ smol.chat = (function() {
 			window.users = users;
 			self.setup_socket();
 			self.setup_visibility();
-			self.setup_rooms();
 			self.setup_user(function() {
 				self.setup_form();
 				self.setup_avatar();
 				self.setup_colors();
+				self.setup_rooms();
 				self.setup_users(function() {
 					self.setup_messages();
 				});
@@ -73,12 +73,6 @@ smol.chat = (function() {
 			});
 		},
 
-		setup_rooms: function() {
-			$.get('/api/rooms').then(function(rsp) {
-				smol.sidebar.update_rooms(rsp.rooms);
-			});
-		},
-
 		setup_user: function(cb) {
 
 			var new_user = false;
@@ -95,7 +89,6 @@ smol.chat = (function() {
 						$('#menu').removeClass('no-animation');
 					}, 1000);
 				}
-				self.join_room(self.user.room);
 				cb();
 			});
 		},
@@ -166,10 +159,16 @@ smol.chat = (function() {
 			self.update_favicon();
 		},
 
+		setup_rooms: function() {
+			$.get('/api/rooms').then(function(rsp) {
+				smol.sidebar.update_rooms(rsp.rooms);
+				smol.sidebar.set_room(self.user.room);
+			});
+		},
+
 		setup_users: function(cb) {
 			$.get('/api/users').then(function(rsp) {
 				users = rsp.users;
-				console.log(users);
 				cb();
 			});
 		},
@@ -581,8 +580,8 @@ smol.chat = (function() {
 		},
 
 		set_nickname: function(nickname) {
-			if (! nickname.match(/^[a-z0-9_]+$/i)) {
-				alert('Sorry, your nickname can only include letters, numbers, or underscores.');
+			if (! nickname.match(/^[a-z0-9_-]+$/i)) {
+				alert('Sorry, your nickname can only include letters, numbers, hyphens, or underscores.');
 				return false;
 			}
 			self.set_user({
@@ -621,11 +620,11 @@ smol.chat = (function() {
 		},
 
 		join_room: function(room) {
-			console.log('join_room: ' + room);
-			if (! room.match(/^[a-z0-9_]+$/i)) {
-				alert('Sorry, rooms can only have letters, numbers, or underscrores.');
+			if (! room.match(/^[a-z0-9_-]+$/i)) {
+				alert('Sorry, rooms can only have letters, numbers, hyphens, or underscrores.');
 				return false;
 			}
+			room = room.toLowerCase();
 			self.set_user({
 				room: room
 			});

@@ -109,7 +109,7 @@ app.get("/api/rooms", function(request, response) {
 			return -1;
 		} else if (b == 'commons') {
 			return 1;
-		} else if (a < b) {
+		} else if (a.toLowerCase() < b.toLowerCase()) {
 			return -1;
 		} else {
 			return 1;
@@ -154,12 +154,12 @@ io.on('connection', function(socket) {
 			console.log(data);
 			return;
 		}
-		if (! data.nickname.match(/^[a-z0-9_]+$/i)) {
+		if (! data.nickname.match(/^[a-z0-9_-]+$/i)) {
 			console.log('invalid nickname:');
 			console.log(data);
 			return;
 		}
-		if (! data.room.match(/^[a-z0-9_]+$/i)) {
+		if (! data.room.match(/^[a-z0-9_-]+$/i)) {
 			console.log('invalid room:');
 			console.log(data);
 			return;
@@ -214,7 +214,7 @@ io.on('connection', function(socket) {
 	});
 
 	socket.on('join', function(user, room) {
-		if (! room.match(/^[a-z0-9_]+$/i)) {
+		if (! room.match(/^[a-z0-9_-]+$/i)) {
 			console.log('invalid room:');
 			console.log(data);
 			return;

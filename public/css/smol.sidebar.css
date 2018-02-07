@@ -48,5 +48,11 @@
 }
 
 #sidebar-rooms li .fa {
+	opacity: 0.5;
 	margin-right: 10px;
+}
+
+#sidebar-rooms li.selected .fa,
+#sidebar-rooms li:hover .fa {
+	opacity: 1;
 }
