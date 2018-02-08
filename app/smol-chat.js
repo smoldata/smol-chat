@@ -231,7 +231,16 @@ io.on('connection', function(socket) {
 			self.mkdir(rooms_dir + '/' + room);
 			dotdata.update_index(rooms_dir);
 		}
-		io.to(user.room).emit('join', user);
+		io.to(room).emit('join', user);
+	});
+
+	socket.on('leave', function(user, room) {
+		if (! room.match(/^[a-z0-9_-]+$/i)) {
+			console.log('invalid room:');
+			console.log(data);
+			return;
+		}
+		io.to(room).emit('leave', user);
 	});
 });
 

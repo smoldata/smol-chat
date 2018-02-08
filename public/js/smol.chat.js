@@ -462,7 +462,7 @@ smol.chat = (function() {
 			var icon = msg.match(/^\/icon (\d+)$/);
 			var color = msg.match(/^\/color (\d+)$/);
 			var join_room = msg.match(/^\/join (.+)$/);
-			//var leave_room = msg.match(/^\/leave (.+)$/);
+			var leave_room = msg.match(/^\/leave (.+)$/);
 			if (nick) {
 				if (! self.set_nickname(nick[2])) {
 					return -1;
@@ -480,6 +480,11 @@ smol.chat = (function() {
 				return true;
 			} else if (join_room) {
 				if (! self.join_room(join_room[1])) {
+					return -1;
+				}
+				return true;
+			} else if (leave_room) {
+				if (! self.leave_room(leave_room[1])) {
 					return -1;
 				}
 				return true;
@@ -649,6 +654,47 @@ smol.chat = (function() {
 			smol.sidebar.set_room(room);
 			self.socket.emit('join', self.user, room);
 			self.setup_messages();
+
+			return true;
+		},
+
+		leave_room: function(room) {
+
+			if (! room.match(/^[a-z0-9_-]+$/i)) {
+				alert('Sorry, rooms can only have letters, numbers, hyphens, or underscrores.');
+				return false;
+			}
+
+			room = room.toLowerCase();
+			var rooms = self.user.rooms ? self.user.rooms : ['commons'];
+
+			if (rooms.indexOf(room) == -1) {
+				alert('You are not in room ' + room);
+				return false;
+			}
+
+			if (rooms.length == 1 && rooms[0] == room) {
+				alert('You must be in at least one room.');
+				return false;
+			}
+
+			var index = rooms.indexOf(room);
+			rooms.splice(index, 1);
+
+			if (room == self.user.room) {
+				self.user.room = rooms[0];
+				smol.sidebar.set_room(rooms[0]);
+				self.setup_messages();
+			}
+
+			self.set_user({
+				room: self.user.room,
+				rooms: rooms
+			});
+
+			smol.sidebar.remove_room(room);
+
+			self.socket.emit('leave', self.user, room);
 
 			return true;
 		},

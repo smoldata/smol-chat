@@ -57,6 +57,10 @@ smol.sidebar = (function() {
 		room_click: function(e) {
 			var room = $(e.target).data('room');
 			smol.chat.join_room(room);
+		},
+
+		remove_room: function(room) {
+			$('#sidebar-room-' + room).remove();
 		}
 
 	};
