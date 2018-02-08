@@ -1,6 +1,6 @@
 {
   "name": "smol-chat",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Offline-friendly group chat",
   "main": "app/smol-chat.js",
   "scripts": {
