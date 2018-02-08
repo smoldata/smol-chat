@@ -149,7 +149,8 @@ io.on('connection', function(socket) {
 		    ! data.color ||
 		    ! data.icon ||
 		    ! data.nickname ||
-		    ! data.room) {
+		    ! data.room ||
+		    ! data.rooms) {
 			console.log('invalid user event:');
 			console.log(data);
 			return;
@@ -169,13 +170,16 @@ io.on('connection', function(socket) {
 			color: parseInt(data.color),
 			icon: parseInt(data.icon),
 			nickname: data.nickname,
-			room: data.room
+			room: data.room,
+			rooms: data.rooms
 		};
 		users[data.id] = user;
 		dotdata.set('users:' + data.id, user);
 		user_id = parseInt(data.id);
 		io.emit('user', user);
-		socket.join(data.room);
+		for (var i = 0; i < data.rooms; i++) {
+			socket.join(data.rooms[i]);
+		}
 	});
 
 	socket.on('message', function(data) {
@@ -223,7 +227,10 @@ io.on('connection', function(socket) {
 			messages[room] = [];
 		}
 		var rooms_dir = dotdata.dirname('rooms');
-		dotdata.update_index(rooms_dir);
+		if (! fs.existsSync(rooms_dir)) {
+			self.mkdir(rooms_dir + '/' + room);
+			dotdata.update_index(rooms_dir);
+		}
 		io.to(user.room).emit('join', user);
 	});
 });

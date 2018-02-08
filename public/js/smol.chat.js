@@ -160,10 +160,8 @@ smol.chat = (function() {
 		},
 
 		setup_rooms: function() {
-			$.get('/api/rooms').then(function(rsp) {
-				smol.sidebar.update_rooms(rsp.rooms);
-				smol.sidebar.set_room(self.user.room);
-			});
+			smol.sidebar.update_rooms(self.user.rooms);
+			smol.sidebar.set_room(self.user.room);
 		},
 
 		setup_users: function(cb) {
@@ -500,6 +498,9 @@ smol.chat = (function() {
 				if (! self.user.room) {
 					self.user.room = 'commons';
 				}
+				if (! self.user.rooms) {
+					self.user.rooms = ['commons'];
+				}
 				if (! self.user.id) {
 					// This is for backwards-compatibility.
 					$.get('/api/id', function(data) {
@@ -520,6 +521,9 @@ smol.chat = (function() {
 					if (! self.user.room) {
 						self.user.room = 'commons';
 					}
+					if (! self.user.rooms) {
+						self.user.rooms = ['commons'];
+					}
 				} catch(err) {
 					console.error(err);
 				}
@@ -532,7 +536,8 @@ smol.chat = (function() {
 						nickname: smol.names.pick_random(),
 						color: Math.ceil(Math.random() * 10),
 						icon: Math.ceil(Math.random() * 25),
-						room: 'commons'
+						room: 'commons',
+						rooms: ['commons']
 					});
 					cb(self.user);
 				});
@@ -561,12 +566,16 @@ smol.chat = (function() {
 				}
 			}
 
-			for (key in props) {
-				user[key] = props[key];
-			}
-
 			if (! user.room) {
 				user.room = 'commons';
+			}
+
+			if (! user.rooms) {
+				user.rooms = ['commons'];
+			}
+
+			for (key in props) {
+				user[key] = props[key];
 			}
 
 			if (window.localStorage) {
@@ -620,17 +629,27 @@ smol.chat = (function() {
 		},
 
 		join_room: function(room) {
+
 			if (! room.match(/^[a-z0-9_-]+$/i)) {
 				alert('Sorry, rooms can only have letters, numbers, hyphens, or underscrores.');
 				return false;
 			}
+
 			room = room.toLowerCase();
+			var rooms = self.user.rooms ? self.user.rooms : ['commons'];
+			if (rooms.indexOf(room) == -1) {
+				rooms.push(room);
+			}
+
 			self.set_user({
-				room: room
+				room: room,
+				rooms: rooms
 			});
+
 			smol.sidebar.set_room(room);
 			self.socket.emit('join', self.user, room);
 			self.setup_messages();
+
 			return true;
 		},
 
