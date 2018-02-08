@@ -76,7 +76,7 @@ smol.sidebar = (function() {
 		set_room_events: function(room) {
 			$('#sidebar-room-' + room).click(self.room_click);
 			$('#sidebar-room-' + room).mouseenter(function() {
-				$('#sidebar-room-' + room).append('<span class="leave fa fa-close"></span>');
+				$('#sidebar-room-' + room).append('<span class="leave fa fa-close" title="Leave room"></span>');
 			});
 			$('#sidebar-room-' + room).mouseleave(function() {
 				$('#sidebar-room-' + room + ' .leave').remove();
