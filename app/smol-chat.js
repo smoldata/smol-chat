@@ -177,6 +177,7 @@ io.on('connection', function(socket) {
 		dotdata.set('users:' + data.id, user);
 		user_id = parseInt(data.id);
 		io.emit('user', user);
+		socket.join(data.room);
 		for (var i = 0; i < data.rooms; i++) {
 			socket.join(data.rooms[i]);
 		}
