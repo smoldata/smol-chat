@@ -33,6 +33,7 @@
 }
 
 #sidebar-rooms li {
+	position: relative;
 	padding: 7.5px 15px;
 	overflow: hidden;
 	cursor: pointer;
@@ -55,4 +56,17 @@
 #sidebar-rooms li.selected .fa,
 #sidebar-rooms li:hover .fa {
 	opacity: 1;
+}
+
+#sidebar-rooms li .leave {
+	position: absolute;
+	color: rgba(255, 255, 255, 0.5);
+	font-size: 16px;
+	right: -3.5px;
+	top: 0;
+	padding: 12px 7px;
+}
+
+#sidebar-rooms li .leave:hover {
+	color: #fff;
 }
