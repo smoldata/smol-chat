@@ -231,6 +231,7 @@ io.on('connection', function(socket) {
 			self.mkdir(rooms_dir + '/' + room);
 			dotdata.update_index(rooms_dir);
 		}
+		socket.join(room);
 		io.to(room).emit('join', user);
 	});
 
@@ -240,6 +241,7 @@ io.on('connection', function(socket) {
 			console.log(data);
 			return;
 		}
+		socket.leave(room);
 		io.to(room).emit('leave', user);
 	});
 });
