@@ -62,6 +62,24 @@ smol.chat = (function() {
 					}
 				});
 			});
+			self.socket.on('join', function(user) {
+				var who = user.nickname;
+				if (user.id == self.user.id) {
+					who = 'You';
+				}
+				self.add_system_message({
+					message: who  + ' joined the room'
+				});
+			});
+			self.socket.on('leave', function(user) {
+				var who = user.nickname;
+				if (user.id == self.user.id) {
+					who = 'You';
+				}
+				self.add_system_message({
+					message: who  + ' left the room'
+				});
+			});
 		},
 
 		setup_visibility: function() {
