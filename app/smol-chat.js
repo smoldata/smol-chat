@@ -155,34 +155,79 @@ io.on('connection', function(socket) {
 	var user_id;
 
 	var join_room = function(room) {
-		console.log('join_room() ' + room + ' / ' + user_id);
+
+		if (! user_id || ! users[user_id]) {
+			// Wait to join the room until the user fully exists
+			return;
+		}
+
 		socket.join(room);
 
 		if (! rooms[room]) {
 			rooms[room] = [];
 		}
+
+		// If this user wasn't already known to be in this room ... we do stuff!
 		if (rooms[room].indexOf(user_id) == -1) {
-			io.to(room).emit('join', users[user_id], room);
+
 			rooms[room].push(user_id);
 			dotdata.set('rooms:' + room, {
 				users: rooms[room]
 			});
+
+			var created = (new Date()).toJSON();
+			var msg = {
+				id: sequence.next(),
+				user_id: user_id,
+				type: 'join_room',
+				room: room,
+				created: created,
+				updated: created
+			};
+			if (! messages[room]) {
+				messages[room] = [];
+			}
+			messages[room].push(msg);
+			io.to(room).emit('message', msg);
+			dotdata.set('rooms:' + room + ':' + parseInt(msg.id), msg);
 		}
 	};
 
 	var leave_room = function(room) {
-		console.log('leave_room() ' + room + ' / ' + user_id);
+
 		socket.leave(room);
-		if (rooms[room]) {
-			var index = rooms[room].indexOf(user_id);
-			if (index != -1) {
-				io.to(room).emit('leave', users[user_id], room);
-				rooms[room].splice(index, 1);
-				dotdata.set('rooms:' + room, {
-					users: rooms[room]
-				});
-			}
+
+		if (! rooms[room]) {
+			console.log(user_id + ' leaving room ' + room + ' that ... does not exist?');
+			return;
 		}
+
+		var index = rooms[room].indexOf(user_id);
+		if (index == -1) {
+			console.log(user_id + ' leaving room ' + room + ' that ... they are not in?');
+			return;
+		}
+
+		rooms[room].splice(index, 1);
+		dotdata.set('rooms:' + room, {
+			users: rooms[room]
+		});
+
+		var created = (new Date()).toJSON();
+		var msg = {
+			id: sequence.next(),
+			user_id: user_id,
+			type: 'leave_room',
+			room: room,
+			created: created,
+			updated: created
+		};
+		if (! messages[room]) {
+			messages[room] = [];
+		}
+		messages[room].push(msg);
+		io.to(room).emit('message', msg);
+		dotdata.set('rooms:' + room + ':' + parseInt(msg.id), msg);
 	};
 
 	socket.on('user', function(data) {
@@ -219,13 +264,11 @@ io.on('connection', function(socket) {
 		users[data.id] = user;
 		dotdata.set('users:' + data.id, user);
 		user_id = parseInt(data.id);
+		io.emit('user', user);
 
-		console.log(data.rooms);
 		for (var i = 0; i < data.rooms.length; i++) {
 			join_room(data.rooms[i]);
 		}
-
-		io.emit('user', user);
 	});
 
 	socket.on('message', function(data) {
@@ -234,6 +277,7 @@ io.on('connection', function(socket) {
 			var msg = {
 				id: parseInt(data.id),
 				user_id: parseInt(user.id),
+				type: 'message',
 				room: user.room,
 				message: data.message,
 				created: data.created,
@@ -249,6 +293,7 @@ io.on('connection', function(socket) {
 			var msg = {
 				id: sequence.next(),
 				user_id: parseInt(user.id),
+				type: 'message',
 				room: user.room,
 				message: data.message,
 				created: created,

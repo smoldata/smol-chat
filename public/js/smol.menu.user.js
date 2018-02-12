@@ -75,21 +75,14 @@ smol.menu.user = (function() {
 		validate: function() {
 
 			var nickname = $('#user-nickname').val();
-			if (! smol.chat.set_nickname(nickname)) {
-				return {
-					ok: 0
-				};
-			}
-
 			var icon = $('#user-icon').val();
-			if (! smol.chat.set_icon(icon)) {
-				return {
-					ok: 0
-				};
-			}
-
 			var color = $('#user-color').val();
-			if (! smol.chat.set_color(color)) {
+			var user = {
+				nickname: nickname,
+				icon: icon,
+				color: color
+			};
+			if (! smol.chat.set_user(user)) {
 				return {
 					ok: 0
 				};

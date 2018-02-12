@@ -254,6 +254,10 @@ body.color10 .btn-save {
 	padding-top: 15px;
 }
 
+#messages .system-message:last-child {
+	padding-bottom: 15px;
+}
+
 #messages .message.hide-sender {
 	padding-left: 55px;
 	margin-top: 0;

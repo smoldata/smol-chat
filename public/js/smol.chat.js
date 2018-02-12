@@ -32,14 +32,23 @@ smol.chat = (function() {
 			self.socket = io.connect(base_url[1]);
 
 			self.socket.on('message', function(data) {
-				self.add_message(data);
-				self.notify(data);
-				self.update_messages_scroll();
-				if (self.user.id == data.user_id) {
-					$('#message-input').attr('disabled', null);
-					$('#message-input').val('');
-					clearTimeout(sending_timeout);
+				if (data.room != self.user.room) {
+					// This is where we should probably mark another room
+					// as having unread messages. (20180212/dphiffer)
+					return;
 				}
+				if (data.type == 'message') {
+					self.add_message(data);
+					self.notify(data);
+					if (self.user.id == data.user_id) {
+						$('#message-input').attr('disabled', null);
+						$('#message-input').val('');
+						clearTimeout(sending_timeout);
+					}
+				} else {
+					self.add_system_message(data);
+				}
+				self.update_messages_scroll();
 			});
 
 			self.socket.on('user', function(data) {
@@ -61,34 +70,6 @@ smol.chat = (function() {
 					}
 				});
 			});
-
-			self.socket.on('join', function(user, room) {
-
-				if (self.user.room != room) {
-					return;
-				}
-				var who = user.nickname;
-				if (user.id == self.user.id) {
-					who = 'You';
-				}
-				self.add_system_message({
-					message: who  + ' joined the room'
-				});
-			});
-
-			self.socket.on('leave', function(user, room) {
-
-				if (self.user.room != room) {
-					return;
-				}
-				var who = user.nickname;
-				if (user.id == self.user.id) {
-					who = 'You';
-				}
-				self.add_system_message({
-					message: who  + ' left the room'
-				});
-			});
 		},
 
 		setup_visibility: function() {
@@ -108,13 +89,14 @@ smol.chat = (function() {
 			}
 
 			self.get_user(function() {
-				self.socket.emit('user', self.user);
 				if (new_user) {
 					$('#menu').addClass('no-animation');
 					smol.menu.show('user');
 					setTimeout(function() {
 						$('#menu').removeClass('no-animation');
 					}, 1000);
+				} else {
+					self.socket.emit('user', self.user);
 				}
 				cb();
 			});
@@ -207,7 +189,11 @@ smol.chat = (function() {
 					$('#messages-loading').html('You are the first one to post here.');
 				}
 				$.each(rsp.messages, function(i, msg) {
-					self.add_message(msg);
+					if (! msg.type || msg.type == 'message') {
+						self.add_message(msg);
+					} else {
+						self.add_system_message(msg);
+					}
 				});
 				self.update_messages_scroll();
 			});
@@ -254,6 +240,7 @@ smol.chat = (function() {
 				last_time_marker = curr_created;
 				var curr_time = self.format_time(curr_created);
 				self.add_system_message({
+					type: 'time',
 					message: curr_time
 				});
 			}
@@ -305,7 +292,21 @@ smol.chat = (function() {
 		},
 
 		add_system_message: function(msg) {
-			var esc_message = smol.esc_html(msg.message);
+			if (msg.type == 'join_room' || msg.type == 'leave_room') {
+				var user = users[msg.user_id];
+				if (! user) {
+					console.error('unknown user ' + msg.user_id);
+					return;
+				}
+				var who = user.nickname;
+				if (user.id == self.user.id) {
+					who = 'You';
+				}
+				var what = msg.type == 'join_room' ? ' joined the room' : ' left the room';
+				var esc_message = smol.esc_html(who) + what;
+			} else {
+				var esc_message = smol.esc_html(msg.message);
+			}
 			var html = '<li class="system-message">' + esc_message + '</li>';
 			$('#messages').append(html);
 			last_message = msg;
@@ -527,23 +528,7 @@ smol.chat = (function() {
 			}
 
 			if (self.user) {
-				if (! self.user.room) {
-					self.user.room = 'commons';
-				}
-				if (! self.user.rooms) {
-					self.user.rooms = ['commons'];
-				}
-				if (! self.user.id) {
-					// This is for backwards-compatibility.
-					$.get('/api/id', function(data) {
-						self.set_user({
-							id: data.id
-						});
-						cb(self.user);
-					});
-				} else {
-					cb(self.user);
-				}
+				cb(self.user);
 				return;
 			}
 
@@ -563,14 +548,14 @@ smol.chat = (function() {
 
 			if (! self.user) {
 				$.get('/api/id', function(data) {
-					self.set_user({
+					self.user = {
 						id: data.id,
-						nickname: smol.names.pick_random(),
+						nickname: '',
 						color: Math.ceil(Math.random() * 10),
 						icon: Math.ceil(Math.random() * 25),
 						room: 'commons',
 						rooms: ['commons']
-					});
+					};
 					cb(self.user);
 				});
 			} else if (! self.user.id) {
@@ -590,7 +575,9 @@ smol.chat = (function() {
 
 			var user = {};
 
-			if (window.localStorage && localStorage.user) {
+			if (self.user) {
+				user = self.user;
+			} else if (window.localStorage && localStorage.user) {
 				try {
 					user = JSON.parse(localStorage.user);
 				} catch(err) {
@@ -607,6 +594,9 @@ smol.chat = (function() {
 			}
 
 			for (key in props) {
+				if (! self.validate_user_prop(key, props[key])) {
+					return false;
+				}
 				user[key] = props[key];
 			}
 
@@ -621,8 +611,7 @@ smol.chat = (function() {
 		},
 
 		set_nickname: function(nickname) {
-			if (! nickname.match(/^[a-z0-9_-]+$/i)) {
-				alert('Sorry, your nickname can only include letters, numbers, hyphens, or underscores.');
+			if (! self.validate_user_prop('nickname', nickname)) {
 				return false;
 			}
 			self.set_user({
@@ -633,8 +622,7 @@ smol.chat = (function() {
 
 		set_icon: function(icon) {
 			icon = parseInt(icon);
-			if (icon < 1 || icon > 25) {
-				alert('Sorry, your icon must be a number between 1 and 25.');
+			if (! self.validate_user_prop('icon', icon)) {
 				return false;
 			}
 			$('#avatar-icon').removeClass('icon' + self.user.icon);
@@ -647,8 +635,7 @@ smol.chat = (function() {
 
 		set_color: function(color) {
 			color = parseInt(color);
-			if (color < 1 || color > 10) {
-				alert('Sorry, your color must be a number between 1 and 10.');
+			if (! self.validate_user_prop('color', color)) {
 				return false;
 			}
 			$('#avatar').removeClass('color' + self.user.color);
@@ -657,6 +644,26 @@ smol.chat = (function() {
 				color: color
 			});
 			self.setup_colors();
+			return true;
+		},
+
+		validate_user_prop: function(prop, value) {
+			if (prop == 'icon' || prop == 'color') {
+				value = parseInt(value);
+			}
+			if (prop == 'nickname' &&
+			    ! value.match(/^[a-z0-9_-]+$/i)) {
+				alert('Sorry, your nickname can only include letters, numbers, hyphens, or underscores.');
+				return false;
+			} else if (prop == 'icon' &&
+			           (isNaN(value) || value < 1 || value > 25)) {
+				alert('Sorry, your icon must be a number between 1 and 25.');
+				return false;
+			} else if (prop == 'color' &&
+			           (isNaN(value) || value < 1 || value > 10)) {
+				alert('Sorry, your color must be a number between 1 and 10.');
+				return false;
+			}
 			return true;
 		},
 
