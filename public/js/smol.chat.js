@@ -30,9 +30,7 @@ smol.chat = (function() {
 		setup_socket: function() {
 			var base_url = window.location.href.match(/(https?:\/\/.+?)\//);
 			self.socket = io.connect(base_url[1]);
-			self.socket.on('reconnect', function(data) {
-				self.socket.emit('user', self.user);
-			});
+
 			self.socket.on('message', function(data) {
 				self.add_message(data);
 				self.notify(data);
@@ -43,6 +41,7 @@ smol.chat = (function() {
 					clearTimeout(sending_timeout);
 				}
 			});
+
 			self.socket.on('user', function(data) {
 				users[data.id] = data;
 				var esc_nickname = smol.esc_html(data.nickname);
@@ -62,7 +61,12 @@ smol.chat = (function() {
 					}
 				});
 			});
-			self.socket.on('join', function(user) {
+
+			self.socket.on('join', function(user, room) {
+
+				if (self.user.room != room) {
+					return;
+				}
 				var who = user.nickname;
 				if (user.id == self.user.id) {
 					who = 'You';
@@ -71,7 +75,12 @@ smol.chat = (function() {
 					message: who  + ' joined the room'
 				});
 			});
-			self.socket.on('leave', function(user) {
+
+			self.socket.on('leave', function(user, room) {
+
+				if (self.user.room != room) {
+					return;
+				}
 				var who = user.nickname;
 				if (user.id == self.user.id) {
 					who = 'You';

@@ -21,6 +21,7 @@ app.use(express.static('public'));
 
 var messages = {};
 var users = {};
+var rooms = {};
 
 dotdata.init({
 	data_dir: path.dirname(__dirname) + '/.data'
@@ -37,6 +38,9 @@ dotdata.index('users').then(function(index) {
 			if (! user.room) {
 				user.room = 'commons';
 			}
+			if (! user.rooms) {
+				user.rooms = ['commons'];
+			}
 			users[user.id] = user;
 			count++;
 		} catch (err) {
@@ -48,6 +52,13 @@ dotdata.index('users').then(function(index) {
 });
 
 function index_room(room) {
+
+	dotdata.get('rooms:' + room).then(function(data) {
+		rooms[room] = data.users;
+	}).catch(function(err) {
+		rooms[room] = [];
+	});
+
 	dotdata.index('rooms:' + room).then(function(index) {
 		var name, filename, json, user;
 		for (var i = 0; i < index.data.length; i++) {
@@ -143,6 +154,37 @@ io.on('connection', function(socket) {
 
 	var user_id;
 
+	var join_room = function(room) {
+		console.log('join_room() ' + room + ' / ' + user_id);
+		socket.join(room);
+
+		if (! rooms[room]) {
+			rooms[room] = [];
+		}
+		if (rooms[room].indexOf(user_id) == -1) {
+			io.to(room).emit('join', users[user_id], room);
+			rooms[room].push(user_id);
+			dotdata.set('rooms:' + room, {
+				users: rooms[room]
+			});
+		}
+	};
+
+	var leave_room = function(room) {
+		console.log('leave_room() ' + room + ' / ' + user_id);
+		socket.leave(room);
+		if (rooms[room]) {
+			var index = rooms[room].indexOf(user_id);
+			if (index != -1) {
+				io.to(room).emit('leave', users[user_id], room);
+				rooms[room].splice(index, 1);
+				dotdata.set('rooms:' + room, {
+					users: rooms[room]
+				});
+			}
+		}
+	};
+
 	socket.on('user', function(data) {
 		if (! data ||
 		    ! data.id ||
@@ -155,6 +197,7 @@ io.on('connection', function(socket) {
 			console.log(data);
 			return;
 		}
+
 		if (! data.nickname.match(/^[a-z0-9_-]+$/i)) {
 			console.log('invalid nickname:');
 			console.log(data);
@@ -176,11 +219,13 @@ io.on('connection', function(socket) {
 		users[data.id] = user;
 		dotdata.set('users:' + data.id, user);
 		user_id = parseInt(data.id);
-		io.emit('user', user);
-		socket.join(data.room);
-		for (var i = 0; i < data.rooms; i++) {
-			socket.join(data.rooms[i]);
+
+		console.log(data.rooms);
+		for (var i = 0; i < data.rooms.length; i++) {
+			join_room(data.rooms[i]);
 		}
+
+		io.emit('user', user);
 	});
 
 	socket.on('message', function(data) {
@@ -232,8 +277,7 @@ io.on('connection', function(socket) {
 			self.mkdir(rooms_dir + '/' + room);
 			dotdata.update_index(rooms_dir);
 		}
-		socket.join(room);
-		io.to(room).emit('join', user);
+		join_room(room);
 	});
 
 	socket.on('leave', function(user, room) {
@@ -242,8 +286,7 @@ io.on('connection', function(socket) {
 			console.log(data);
 			return;
 		}
-		socket.leave(room);
-		io.to(room).emit('leave', user);
+		leave_room(room);
 	});
 });
 
