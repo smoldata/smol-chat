@@ -222,9 +222,9 @@ smol.chat = (function() {
 
 			// Editing an existing message
 			if ($('#message-' + msg.id).length > 0) {
-				var html = self.format_message(msg.message);
-				var esc_html = smol.esc_html(html);
-				$('#message-' + msg.id + ' .body').html(esc_html);
+				var esc_message = smol.esc_html(msg.message);
+				var esc_html_message = self.format_message(esc_message);
+				$('#message-' + msg.id + ' .body').html(esc_html_message);
 				$('#message-' + msg.id).addClass('edited');
 				$('#message-' + msg.id).data('message', msg.message);
 				return;
