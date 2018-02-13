@@ -24,8 +24,30 @@ var users = {};
 var rooms = {};
 
 dotdata.init({
-	data_dir: path.dirname(__dirname) + '/.data'
+	data_dir: path.dirname(__dirname) + '/.data',
+	setup_db: function(db) {
+		db.run(
+			"CREATE TABLE message (" +
+				"id INTEGER PRIMARY KEY, " +
+				"user_id INTEGER, " +
+				"type VARCHAR(32), " +
+				"room VARCHAR(32), " +
+				"message TEXT, " +
+				"created DATETIME," +
+				"updated DATETIME" +
+			");"
+		);
+		db.run(
+			"CREATE INDEX message_idx (" +
+				"id, room, created" +
+			");"
+		);
+	}
 });
+
+// For now we re-index on startup
+dotdata.db.run("DELETE FROM message;");
+sequence.init(dotdata);
 
 dotdata.index('users').then(function(index) {
 	var filename, json, user;
@@ -60,7 +82,14 @@ function index_room(room) {
 	});
 
 	dotdata.index('rooms:' + room).then(function(index) {
-		var name, filename, json, user;
+
+		var msg_stmt = dotdata.db.prepare(
+			"INSERT INTO message " +
+			"(id, user_id, type, room, message, created, updated) " +
+			"VALUES (?, ?, ?, ?, ?, ?, ?);"
+		);
+
+		var name, filename, json, user, msg_message;
 		for (var i = 0; i < index.data.length; i++) {
 			try {
 				name = 'rooms:' + room + ':' + index.data[i];
@@ -71,6 +100,16 @@ function index_room(room) {
 					messages[room] = [];
 				}
 				messages[room].push(msg);
+
+				// Index into db
+				msg_message = null;
+				if (msg.message) {
+					msg_message = msg.message;
+				}
+				msg_stmt.run(
+					msg.id, msg.user_id, msg.type, msg.room,
+					msg_message, msg.created, msg.updated
+				);
 			} catch (err) {
 				console.log('Error loading message ' + index.data[i] + ':');
 				console.log(err);
@@ -85,6 +124,9 @@ function index_room(room) {
 				}
 			});
 		}
+
+		msg_stmt.finalize();
+
 		var count = messages[room].length;
 		console.log('loaded ' + count + ' messages in ' + room);
 	});
@@ -134,13 +176,17 @@ app.get("/api/rooms", function(request, response) {
 
 app.get("/api/:room/messages", function(request, response) {
 	var msgs = [];
-	if (request.params.room in messages) {
-		msgs = messages[request.params.room];
-	}
-	response.send({
-		ok: 1,
-		messages: msgs
-	});
+	var onsuccess = function() {
+		response.send({
+			ok: 1,
+			messages: msgs
+		});
+	};
+
+	var sql = "SELECT * FROM message ORDER BY created DESC LIMIT 100";
+	dotdata.db.each(sql, function(err, row) {
+		msgs.unshift(row);
+	}, onsuccess);
 });
 
 app.get("/api/users", function(request, response) {

@@ -1,11 +1,12 @@
 var fs = require('fs');
 var path = require('path');
+var sqlite3 = require('sqlite3').verbose();
 
 var options = {
 	data_dir: __dirname + '/.data'
 };
 
-var dotdata = {
+var self = {
 
 	init: function(opt) {
 		if (opt) {
@@ -13,12 +14,32 @@ var dotdata = {
 				options[key] = opt[key];
 			}
 		}
-		dotdata.mkdir(options.data_dir);
+		self.setup_data_dir();
+		self.setup_db();
+	},
+
+	setup_data_dir: function() {
+		if (options.data_dir.substr(-1, 1) == '/') {
+			var len = options.data_dir.length - 1;
+			options.data_dir = options.data_dir.substr(0, len);
+		}
+		self.mkdir(options.data_dir);
+	},
+
+	setup_db: function() {
+		var db_path = options.data_dir + '/dotdata.db';
+		var new_db = ! fs.existsSync(db_path);
+		self.db = new sqlite3.Database(db_path);
+		if (new_db && options.setup_db) {
+			self.db.serialize(function() {
+				options.setup_db(self.db);
+			});
+		}
 	},
 
 	get: function(name) {
 		return new Promise(function(resolve, reject) {
-			var filename = dotdata.filename(name);
+			var filename = self.filename(name);
 			if (! filename) {
 				return reject({
 					error: 'Invalid name: ' + name
@@ -53,7 +74,7 @@ var dotdata = {
 		return new Promise(function(resolve, reject) {
 
 			var json = JSON.stringify(data, null, 4);
-			var filename = dotdata.filename(name);
+			var filename = self.filename(name);
 			if (! filename) {
 				return reject({
 					error: 'Invalid name: ' + name
@@ -62,16 +83,16 @@ var dotdata = {
 
 			var write_to_disk = function() {
 				var dir = path.dirname(filename);
-				dotdata.mkdir(dir);
+				self.mkdir(dir);
 				fs.writeFile(filename, json, 'utf8', function(err) {
 					if (err) {
 						return reject(err);
 					}
-					dotdata.snapshot(name, json).then(function() {
+					self.snapshot(name, json).then(function() {
 						resolve(data);
 					});
 					if (! filename.match(/\.index\.json$/)) {
-						dotdata.update_index(dir);
+						self.update_index(dir);
 					}
 				});
 			}
@@ -101,14 +122,14 @@ var dotdata = {
 				write_to_disk();
 			}
 
-			dotdata.get(name).then(onsuccess, onerror);
+			self.get(name).then(onsuccess, onerror);
 		});
 	},
 
 	rename: function(from, to) {
 		return new Promise(function(resolve, reject) {
-			var from_filename = dotdata.filename(from);
-			var to_filename = dotdata.filename(to);
+			var from_filename = self.filename(from);
+			var to_filename = self.filename(to);
 			if (! from_filename) {
 				return reject({
 					error: 'Invalid name: ' + from
@@ -131,7 +152,7 @@ var dotdata = {
 						details: err
 					});
 				} else {
-					dotdata.update_index(path.dirname(to_filename));
+					self.update_index(path.dirname(to_filename));
 					return resolve();
 				}
 			});
@@ -142,13 +163,13 @@ var dotdata = {
 
 		return new Promise(function(resolve, reject) {
 
-			var filename = dotdata.snapshot_filename(name);
+			var filename = self.snapshot_filename(name);
 			if (! filename) {
 				return resolve();
 			}
 
 			var dir = path.dirname(filename);
-			dotdata.mkdir(dir);
+			self.mkdir(dir);
 
 			fs.writeFile(filename, json, 'utf8', function(err) {
 				if (err) {
@@ -156,7 +177,7 @@ var dotdata = {
 					console.log('Error writing snapshot ' + filename + ': ' + err.message);
 				} else {
 					resolve();
-					dotdata.update_index(dir, dotdata.summarize_snapshots);
+					self.update_index(dir, self.summarize_snapshots);
 				}
 			});
 
@@ -188,7 +209,7 @@ var dotdata = {
 				}
 
 				var write_to_disk = function() {
-					dotdata.set(name, index)
+					self.set(name, index)
 						.then(function() {
 							resolve(index);
 						})
@@ -234,7 +255,7 @@ var dotdata = {
 			}
 			name += '.index';
 
-			var dir = path.dirname(dotdata.filename(name));
+			var dir = path.dirname(self.filename(name));
 
 			var onsuccess = function(data) {
 				resolve(data);
@@ -247,10 +268,10 @@ var dotdata = {
 						dirs: []
 					});
 				} else if (err.code == 'EJSON') {
-					var filename = dotdata.filename(name);
+					var filename = self.filename(name);
 					console.log('Error parsing ' + filename + ': ' + err.message);
 					console.log('Regenerating the index...');
-					dotdata.update_index(dir).then(function(index) {
+					self.update_index(dir).then(function(index) {
 						if (typeof index == 'object' &&
 						    typeof index.data == 'object') {
 							console.log('Index regenerated.');
@@ -263,7 +284,7 @@ var dotdata = {
 					reject(err);
 				}
 			};
-			dotdata.get(name).then(onsuccess, onerror);
+			self.get(name).then(onsuccess, onerror);
 
 		});
 	},
@@ -284,13 +305,13 @@ var dotdata = {
 	},
 
 	dirname: function(name) {
-		var filename = dotdata.filename(name);
+		var filename = self.filename(name);
 		return filename.replace(/\.json$/, '');
 	},
 
 	snapshot_filename: function(name, rev) {
 
-		var base_filename = dotdata.filename(name);
+		var base_filename = self.filename(name);
 		var root = path.dirname(base_filename);
 
 		// If any of these pre-conditions fail, return null, meaning "don't
@@ -463,8 +484,8 @@ var dotdata = {
 					console.log('Tried to mkdir on root: ' + dir);
 					return false;
 				}
-				dotdata.mkdir(parent_dir);
-				dotdata.mkdir(dir);
+				self.mkdir(parent_dir);
+				self.mkdir(dir);
 			} else {
 				console.log('Could not mkdir: ' + dir);
 				console.log(err);
@@ -475,4 +496,4 @@ var dotdata = {
 	}
 };
 
-module.exports = dotdata;
+module.exports = self;
