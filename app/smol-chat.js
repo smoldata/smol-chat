@@ -283,9 +283,9 @@ io.on('connection', function(socket) {
 				created: data.created,
 				updated: (new Date()).toJSON()
 			};
-			for (var i = 0; i < messages.length; i++) {
-				if (messages[i].id == msg.id) {
-					messages[i] = msg;
+			for (var i = 0; i < messages[user.room].length; i++) {
+				if (messages[user.room][i].id == msg.id) {
+					messages[user.room][i] = msg;
 				}
 			}
 		} else {
