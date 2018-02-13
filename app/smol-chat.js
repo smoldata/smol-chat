@@ -175,7 +175,9 @@ app.get("/api/rooms", function(request, response) {
 });
 
 app.get("/api/:room/messages", function(request, response) {
+
 	var msgs = [];
+
 	var onsuccess = function() {
 		response.send({
 			ok: 1,
@@ -185,7 +187,11 @@ app.get("/api/:room/messages", function(request, response) {
 
 	var sql = "SELECT * FROM message ORDER BY created DESC LIMIT 100";
 	dotdata.db.each(sql, function(err, row) {
-		msgs.unshift(row);
+		if (err) {
+			console.log(err);
+		} else {
+			msgs.unshift(row);
+		}
 	}, onsuccess);
 });
 
@@ -195,6 +201,27 @@ app.get("/api/users", function(request, response) {
 		users: users
 	});
 });
+
+function db_insert_message(msg, user_id) {
+	var sql =
+		"INSERT INTO message " +
+		"(id, user_id, type, room, message, created, updated) " +
+		"VALUES (?, ?, ?, ?, ?, ?, ?);";
+	dotdata.db.run(sql,
+		msg.id, user_id, msg.type, msg.room,
+		msg.message, msg.created, msg.updated
+	);
+}
+
+function db_update_message(msg, user_id) {
+	var sql =
+		"UPDATE message " +
+		"SET " +
+			"message = ?, " +
+			"updated = ?" +
+		"WHERE id = ? AND user_id = ?;";
+	dotdata.db.run(sql, msg.message, msg.updated, msg.id, user_id);
+}
 
 io.on('connection', function(socket) {
 
@@ -236,6 +263,7 @@ io.on('connection', function(socket) {
 			messages[room].push(msg);
 			io.to(room).emit('message', msg);
 			dotdata.set('rooms:' + room + ':' + parseInt(msg.id), msg);
+			db_insert_message(msg, user_id);
 		}
 	};
 
@@ -274,6 +302,7 @@ io.on('connection', function(socket) {
 		messages[room].push(msg);
 		io.to(room).emit('message', msg);
 		dotdata.set('rooms:' + room + ':' + parseInt(msg.id), msg);
+		db_insert_message(msg, user_id);
 	};
 
 	socket.on('user', function(data) {
@@ -320,9 +349,10 @@ io.on('connection', function(socket) {
 	socket.on('message', function(data) {
 		var user = users[user_id];
 		if (data.id) {
+			// update message
 			var msg = {
 				id: parseInt(data.id),
-				user_id: parseInt(user.id),
+				user_id: parseInt(user_id),
 				type: 'message',
 				room: user.room,
 				message: data.message,
@@ -334,8 +364,10 @@ io.on('connection', function(socket) {
 					messages[user.room][i] = msg;
 				}
 			}
+			db_update_message(msg, user_id);
 		} else {
-			var created = (new Date()).toJSON();
+			// new message
+			data.created = (new Date()).toJSON();
 			var msg = {
 				id: sequence.next(),
 				user_id: parseInt(user.id),
@@ -349,6 +381,7 @@ io.on('connection', function(socket) {
 				messages[user.room] = [];
 			}
 			messages[user.room].push(msg);
+			db_insert_message(msg, user_id);
 		}
 		io.to(user.room).emit('message', msg);
 		dotdata.set('rooms:' + user.room + ':' + parseInt(msg.id), msg);

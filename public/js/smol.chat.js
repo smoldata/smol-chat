@@ -292,25 +292,118 @@ smol.chat = (function() {
 		},
 
 		add_system_message: function(msg) {
+			var attrs = '';
+			var type = msg.type;
 			if (msg.type == 'join_room' || msg.type == 'leave_room') {
-				var user = users[msg.user_id];
-				if (! user) {
-					console.error('unknown user ' + msg.user_id);
+				var message = self.join_leave_message(msg);
+				if (! message) {
 					return;
 				}
-				var who = user.nickname;
-				if (user.id == self.user.id) {
-					who = 'You';
-				}
-				var what = msg.type == 'join_room' ? ' joined the room' : ' left the room';
-				var esc_message = smol.esc_html(who) + what;
+				type = 'join_leave';
+				var esc_message = smol.esc_html(message);
+				var short_type = msg.type.replace('_room', '');
+				var data_attr = 'data-' + short_type + '-users';
+				var esc_id = smol.esc_html(msg.user_id);
+				attrs = ' ' + data_attr + '="' + esc_id + '"';
 			} else {
 				var esc_message = smol.esc_html(msg.message);
 			}
-			var html = '<li class="system-message">' + esc_message + '</li>';
+			var esc_type = smol.esc_html(type);
+			var html = '<li class="system-message ' + esc_type + '"' + attrs + '>' + esc_message + '</li>';
 			$('#messages').append(html);
 			last_message = msg;
 			self.update_messages_scroll();
+		},
+
+		join_leave_message: function(msg) {
+			if ($('#messages .system-message:last-child').length > 0) {
+				self.update_join_leave_message(msg);
+				return false;
+			}
+			var user = users[msg.user_id];
+			if (! user) {
+				console.error('unknown user ' + msg.user_id);
+				console.log(msg);
+				return false;
+			}
+			var who = user.nickname;
+			if (user.id == self.user.id) {
+				who = 'You';
+			}
+			var what = msg.type == 'join_room' ? ' joined the room' : ' left the room';
+			return who + what;
+		},
+
+		update_join_leave_message: function(msg) {
+
+			$msg = $('#messages .system-message:last-child');
+
+			var joins = $msg.data('join-users') || '';
+			var leaves = $msg.data('leave-users') || '';
+
+			if (msg.type == 'join_room') {
+				if (joins) {
+					joins += ',' + parseInt(msg.user_id);
+				} else {
+					joins = parseInt(msg.user_id);
+				}
+				$msg.data('join-users', joins);
+			} else if (msg.type == 'leave_room') {
+				if (leaves) {
+					leaves += ',' + parseInt(msg.user_id);
+				} else {
+					leaves = parseInt(msg.user_id);
+				}
+				$msg.data('leave-users', leaves);
+			}
+
+			// make sure we are dealing with strings, not numbers
+			joins = '' + joins;
+			leaves = '' + leaves;
+
+			var namify = function(id) {
+				id = parseInt(id);
+				if (self.user.id == id) {
+					return 'You';
+				} else if (users[id]) {
+					return users[id].nickname;
+				} else {
+					console.error('unknown user ' + id);
+					console.error(msg);
+				}
+			};
+
+			var andify = function(names) {
+				if (names.length == 1) {
+					return names[0];
+				} else if (names.length == 2) {
+					return names[0] + ' and ' + names[1];
+				}
+				var names_message = '';
+				for (var i = 0; i < names.length - 1; i++) {
+					names_message += names[i] + ', ';
+				}
+				names_message += 'and ' + names[names.length - 1];
+				return names_message;
+			};
+
+			var message = [];
+
+			if (joins) {
+				joins = joins.split(',');
+				joins = joins.map(namify);
+				message.push(andify(joins) + ' joined the room');
+			}
+			if (leaves) {
+				leaves = leaves.split(',');
+				leaves = leaves.map(namify);
+				message.push(andify(leaves) + ' left the room');
+			}
+
+			message = message.join(', ');
+			var esc_message = smol.esc_html(message);
+
+			$msg.html(esc_message);
 		},
 
 		notify: function(data) {
