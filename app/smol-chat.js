@@ -155,11 +155,21 @@ app.get("/api/:room/messages", function(request, response) {
 		});
 	};
 
+	var where_clause = "WHERE room = $room ";
+	var params = {
+		$room: request.params.room
+	};
+	if (request.query.before_id) {
+		params['$id'] = parseInt(request.query.before_id);
+		where_clause += "AND id < $id ";
+	}
+
 	var sql = "SELECT * FROM message " +
-	          "WHERE room = ? " +
+	          where_clause +
 	          "ORDER BY created DESC " +
 	          "LIMIT 100;";
-	dotdata.db.each(sql, request.params.room, function(err, row) {
+
+	dotdata.db.each(sql, params, function(err, row) {
 		if (err) {
 			console.log(err);
 		} else {
