@@ -16,6 +16,7 @@ smol.chat = (function() {
 			window.users = users;
 			self.setup_socket();
 			self.setup_visibility();
+			self.setup_pagination();
 			self.setup_user(function() {
 				self.setup_form();
 				self.setup_avatar();
@@ -78,6 +79,23 @@ smol.chat = (function() {
 					unread_messages = false;
 				}
 				self.update_favicon();
+			});
+		},
+
+		setup_pagination: function() {
+			self.paginate_messages = true;
+			$('#messages').scroll(function(e) {
+				if (! self.paginate_messages) {
+					return;
+				}
+				var pos = $('#messages').scrollTop();
+				var $messages = $('#messages .message');
+				if (pos < 50 && $messages.length > 0) {
+					var $first_msg = $($messages[0]);
+					var before_id = parseInt($first_msg.data('id'));
+					self.paginate_messages = false;
+					self.load_messages(before_id);
+				}
 			});
 		},
 
@@ -183,20 +201,7 @@ smol.chat = (function() {
 		setup_messages: function() {
 			last_message = null;
 			last_time_marker = null;
-			$('#messages').html('<li class="system-message" id="messages-loading">Loading...</li>');
-			$.get('/api/' + self.user.room + '/messages').then(function(rsp) {
-				if (rsp.messages.length == 0) {
-					$('#messages-loading').html('You are the first one to post here.');
-				}
-				$.each(rsp.messages, function(i, msg) {
-					if (! msg.type || msg.type == 'message') {
-						self.add_message(msg);
-					} else {
-						self.add_system_message(msg);
-					}
-				});
-				self.update_messages_scroll();
-			});
+			self.load_messages();
 		},
 
 		validate_message: function(msg) {
@@ -209,9 +214,59 @@ smol.chat = (function() {
 			return true;
 		},
 
-		add_message: function(msg) {
+		load_messages: function(before_id) {
 
-			$('#messages-loading').remove();
+			var url = '/api/' + self.user.room + '/messages';
+
+			if (! before_id) {
+				// We are loading a new room's messages.
+				self.paginate_messages = true;
+				$('#messages').html('<div class="system-message" id="messages-loading">Loading...</div>');
+			} else {
+				// We are paginating a new room messages.
+				url += '?before_id=' + parseInt(before_id);
+				$('#messages').prepend('<div class="system-message" id="messages-loading">Loading...</div>');
+			}
+
+			$.get(url).then(function(rsp) {
+
+				if (rsp.messages.length == 0) {
+					self.paginate_messages = false;
+					if (! before_id) {
+						$('#messages-loading').html('You are the first one to post here.');
+					} else {
+						$('#messages-loading').html('You have reached the beginning.');
+					}
+				} else {
+					self.paginate_messages = true;
+					$('#messages-loading').remove();
+				}
+
+				var paginating = false;
+				if (before_id) {
+					paginating = true;
+					last_message = null;
+					last_time_marker = null;
+					$('#messages').prepend('<ul class="pagination pagination-current"></ul>');
+				} else {
+					$('#messages').append('<ul class="pagination"></ul>');
+				}
+
+				$.each(rsp.messages, function(i, msg) {
+					if (! msg.type || msg.type == 'message') {
+						self.add_message(msg, paginating);
+					} else {
+						self.add_system_message(msg, paginating);
+					}
+				});
+
+				var offset = $('#messages').scrollTop();
+				self.update_messages_scroll(paginating, offset);
+				$('#messages .pagination-current').removeClass('pagination-current');
+			});
+		},
+
+		add_message: function(msg, paginating) {
 
 			var user = users[msg.user_id];
 			if (! user) {
@@ -242,7 +297,7 @@ smol.chat = (function() {
 				self.add_system_message({
 					type: 'time',
 					message: curr_time
-				});
+				}, paginating);
 			}
 
 			var esc_id = smol.esc_html(msg.id);
@@ -272,7 +327,11 @@ smol.chat = (function() {
 			           '<div class="nickname">' + esc_nickname + '</div>' +
 			           '<div class="body">' + esc_html_message + '</div>' +
 			           '</div><br class="clear"></li>';
-			$('#messages').append(html);
+			if (! paginating) {
+				$('#messages .pagination:last-child').append(html);
+			} else {
+				$('#messages .pagination-current').append(html);
+			}
 			last_message = msg;
 
 			if (msg.user_id == self.user.id) {
@@ -291,7 +350,7 @@ smol.chat = (function() {
 			}
 		},
 
-		add_system_message: function(msg) {
+		add_system_message: function(msg, paginating) {
 			var attrs = '';
 			var type = msg.type;
 			if (msg.type == 'join_room' || msg.type == 'leave_room') {
@@ -310,9 +369,17 @@ smol.chat = (function() {
 			}
 			var esc_type = smol.esc_html(type);
 			var html = '<li class="system-message ' + esc_type + '"' + attrs + '>' + esc_message + '</li>';
-			$('#messages').append(html);
+
+			if (! paginating) {
+				$('#messages .pagination:last-child').append(html);
+			} else {
+				$('#messages .pagination-current').append(html);
+			}
+
 			last_message = msg;
-			self.update_messages_scroll();
+			if (! paginating) {
+				self.update_messages_scroll();
+			}
 		},
 
 		join_leave_message: function(msg) {
@@ -570,11 +637,16 @@ smol.chat = (function() {
 			return yyyy + '-' + mm + '-' + dd;
 		},
 
-		update_messages_scroll: function() {
-			var height = $('#messages').height();
-			var scroll = $('#messages')[0].scrollHeight;
-			if (scroll > height) {
-				$('#messages').scrollTop(scroll - height);
+		update_messages_scroll: function(paginating, offset) {
+			if (! paginating) {
+				var height = $('#messages').height();
+				var scroll = $('#messages')[0].scrollHeight;
+				if (scroll > height) {
+					$('#messages').scrollTop(scroll - height);
+				}
+			} else {
+				var height = $('#messages .pagination-current').height();
+				$('#messages')[0].scrollTo(0, height + offset);
 			}
 		},
 

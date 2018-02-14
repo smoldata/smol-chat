@@ -254,7 +254,7 @@ body.color10 .btn-save {
 	padding-top: 15px;
 }
 
-#messages .system-message:last-child {
+#messages .pagination:last-child .system-message:last-child {
 	padding-bottom: 15px;
 }
 
