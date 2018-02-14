@@ -38,8 +38,10 @@ smol.menu.user = (function() {
 					$('#user-notifications select').val(self.get_notify_status());
 				} else {
 					$('#user-notifications a').click(function(e) {
+						console.log('clicked notification button');
 						e.preventDefault();
 						Notification.requestPermission(function(permission) {
+							console.log('notification permission = ' + permission);
 							if (permission == 'granted') {
 								$('#user-notifications').html(select_html);
 								$('#user-notifications select').val(self.get_notify_status());
