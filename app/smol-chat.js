@@ -19,7 +19,6 @@ app.use(body_parser.urlencoded({ extended: true })); // application/x-www-form-u
 // http://expressjs.com/en/starter/static-files.html
 app.use(express.static('public'));
 
-var messages = {};
 var users = {};
 var rooms = {};
 
@@ -90,44 +89,37 @@ function index_room(room) {
 		);
 
 		var name, filename, json, user, msg_message;
+		var count = 0;
 		for (var i = 0; i < index.data.length; i++) {
 			try {
+
 				name = 'rooms:' + room + ':' + index.data[i];
 				filename = dotdata.filename(name);
 				json = fs.readFileSync(filename);
 				msg = JSON.parse(json);
-				if (! messages[room]) {
-					messages[room] = [];
-				}
-				messages[room].push(msg);
 
 				// Index into db
 				msg_message = null;
 				if (msg.message) {
+					// Ok this is going to sound weird but not all messages
+					// have ... message properties. I know I know, it's because
+					// some messages are about people joining and leaving rooms.
+					// (20180214/dphiffer)
 					msg_message = msg.message;
 				}
 				msg_stmt.run(
 					msg.id, msg.user_id, msg.type, msg.room,
 					msg_message, msg.created, msg.updated
 				);
+				count++;
+
 			} catch (err) {
 				console.log('Error loading message ' + index.data[i] + ':');
 				console.log(err);
 			}
 		}
-		if (messages[room]) {
-			messages[room].sort(function(a, b) {
-				if (a.created < b.created) {
-					return -1;
-				} else {
-					return 1;
-				}
-			});
-		}
 
 		msg_stmt.finalize();
-
-		var count = messages[room].length;
 		console.log('loaded ' + count + ' messages in ' + room);
 	});
 }
@@ -152,28 +144,6 @@ app.get("/api/id", function(request, response) {
 	});
 });
 
-app.get("/api/rooms", function(request, response) {
-	var rooms = [];
-	for (var room in messages) {
-		rooms.push(room);
-	}
-	rooms.sort(function(a, b) {
-		if (a == 'commons') {
-			return -1;
-		} else if (b == 'commons') {
-			return 1;
-		} else if (a.toLowerCase() < b.toLowerCase()) {
-			return -1;
-		} else {
-			return 1;
-		}
-	});
-	response.send({
-		ok: 1,
-		rooms: rooms
-	});
-});
-
 app.get("/api/:room/messages", function(request, response) {
 
 	var msgs = [];
@@ -185,8 +155,11 @@ app.get("/api/:room/messages", function(request, response) {
 		});
 	};
 
-	var sql = "SELECT * FROM message ORDER BY created DESC LIMIT 100";
-	dotdata.db.each(sql, function(err, row) {
+	var sql = "SELECT * FROM message " +
+	          "WHERE room = ? " +
+	          "ORDER BY created DESC " +
+	          "LIMIT 100;";
+	dotdata.db.each(sql, request.params.room, function(err, row) {
 		if (err) {
 			console.log(err);
 		} else {
@@ -257,10 +230,6 @@ io.on('connection', function(socket) {
 				created: created,
 				updated: created
 			};
-			if (! messages[room]) {
-				messages[room] = [];
-			}
-			messages[room].push(msg);
 			io.to(room).emit('message', msg);
 			dotdata.set('rooms:' + room + ':' + parseInt(msg.id), msg);
 			db_insert_message(msg, user_id);
@@ -296,10 +265,6 @@ io.on('connection', function(socket) {
 			created: created,
 			updated: created
 		};
-		if (! messages[room]) {
-			messages[room] = [];
-		}
-		messages[room].push(msg);
 		io.to(room).emit('message', msg);
 		dotdata.set('rooms:' + room + ':' + parseInt(msg.id), msg);
 		db_insert_message(msg, user_id);
@@ -359,28 +324,19 @@ io.on('connection', function(socket) {
 				created: data.created,
 				updated: (new Date()).toJSON()
 			};
-			for (var i = 0; i < messages[user.room].length; i++) {
-				if (messages[user.room][i].id == msg.id) {
-					messages[user.room][i] = msg;
-				}
-			}
 			db_update_message(msg, user_id);
 		} else {
 			// new message
-			data.created = (new Date()).toJSON();
+			var created = (new Date()).toJSON();
 			var msg = {
 				id: sequence.next(),
-				user_id: parseInt(user.id),
+				user_id: parseInt(user_id),
 				type: 'message',
 				room: user.room,
 				message: data.message,
 				created: created,
 				updated: created
 			};
-			if (! messages[user.room]) {
-				messages[user.room] = [];
-			}
-			messages[user.room].push(msg);
 			db_insert_message(msg, user_id);
 		}
 		io.to(user.room).emit('message', msg);
@@ -392,9 +348,6 @@ io.on('connection', function(socket) {
 			console.log('invalid room:');
 			console.log(data);
 			return;
-		}
-		if (! messages[room]) {
-			messages[room] = [];
 		}
 		var rooms_dir = dotdata.dirname('rooms');
 		if (! fs.existsSync(rooms_dir)) {
