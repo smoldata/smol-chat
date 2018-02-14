@@ -38,6 +38,7 @@ smol.chat = (function() {
 					// as having unread messages. (20180212/dphiffer)
 					return;
 				}
+				var is_scrolled = self.messages_is_scrolled();
 				if (data.type == 'message') {
 					self.add_message(data);
 					self.notify(data);
@@ -49,7 +50,9 @@ smol.chat = (function() {
 				} else {
 					self.add_system_message(data);
 				}
-				self.update_messages_scroll();
+				if (! is_scrolled) {
+					self.update_messages_scroll();
+				}
 			});
 
 			self.socket.on('user', function(data) {
@@ -351,6 +354,9 @@ smol.chat = (function() {
 		},
 
 		add_system_message: function(msg, paginating) {
+
+			var is_scrolled = self.messages_is_scrolled();
+
 			var attrs = '';
 			var type = msg.type;
 			if (msg.type == 'join_room' || msg.type == 'leave_room') {
@@ -377,7 +383,8 @@ smol.chat = (function() {
 			}
 
 			last_message = msg;
-			if (! paginating) {
+
+			if (! paginating && ! is_scrolled) {
 				self.update_messages_scroll();
 			}
 		},
@@ -635,6 +642,12 @@ smol.chat = (function() {
 				dd = '0' + dd;
 			}
 			return yyyy + '-' + mm + '-' + dd;
+		},
+
+		messages_is_scrolled: function() {
+			var height = $('#messages').height();
+			var scroll = $('#messages')[0].scrollHeight;
+			return ((scroll - height) - $('#messages').scrollTop() > 50);
 		},
 
 		update_messages_scroll: function(paginating, offset) {
