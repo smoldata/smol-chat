@@ -266,7 +266,7 @@ body.color10 .btn-save {
 	padding-bottom: 0;
 }
 
-#messages .message:last-child {
+#messages .pagination:last-child .message:last-child {
 	padding-bottom: 15px;
 }
 
